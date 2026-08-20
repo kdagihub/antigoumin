@@ -41,6 +41,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         default=AuthProvider.EMAIL,
     )
     google_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
+    is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     subscription_end_date = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

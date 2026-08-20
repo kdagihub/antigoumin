@@ -1,0 +1,34 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-cream: #faf6f0;
+  --color-cream-dark: #f0e8dc;
+  --color-terracotta: #c45c3e;
+  --color-terracotta-dark: #a84a30;
+  --color-forest: #2d5016;
+  --color-forest-light: #3d6b1f;
+  --color-ink: #1a1a18;
+  --color-muted: #6b6560;
+  --font-display: 'Syne', system-ui, sans-serif;
+  --font-body: 'Figtree', system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    @apply antialiased;
+  }
+
+  body {
+    @apply bg-cream font-body text-ink min-h-dvh;
+  }
+
+  #app {
+    @apply min-h-dvh;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+}

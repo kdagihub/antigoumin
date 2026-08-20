@@ -82,7 +82,7 @@ class Payment(Model):
 L'environnement local aura 3 services :
 1.  `db`: `postgres:15-alpine`
 2.  `redis`: `redis:7-alpine`
-3.  `backend`: Django Ninja tournant sur Gunicorn/Uvicorn.
+3.  `backend`: Django Ninja tournant sur Daphne (ASGI).
 (Le frontend Vue.js peut tourner en local sur Vite `npm run dev`, et en prod, il sera buildé et servi par Nginx dans un conteneur séparé ou par Django).
 
 ### 3.3. Endpoints de l'API (Django Ninja)
@@ -110,9 +110,9 @@ Agis en tant qu'Expert DevOps et Python Backend Developer. Effectue les tâches 
 
 2. Crée le `Dockerfile` pour le backend (installation de requirements.txt, copie du code, exposition port 8000).
 
-3. Génère le fichier `requirements.txt` contenant au minimum : django, django-ninja, psycopg2-binary, redis, pillow, gunicorn, uvicorn.
+3. Génère le fichier `requirements.txt` contenant au minimum : django, django-ninja, psycopg2-binary, redis, pillow, daphne.
 
-4. Initie un script `entrypoint.sh` pour le backend qui attend que la BDD soit prête, exécute les migrations (`python manage.py migrate`), et lance le serveur avec Uvicorn (ou Gunicorn avec uvicorn workers).
+4. Initie un script `entrypoint.sh` pour le backend qui attend que la BDD soit prête, exécute les migrations (`python manage.py migrate`), et lance le serveur avec Daphne.
 
 5. Enfin, crée le dossier racine du projet Django (`backend/`) avec une application `core`. Dans `core/models.py`, définis les modèles suivants : 
    - Un modèle Custom User basé sur AbstractBaseUser (identifiant principal: phone_number, inclure subscription_end_date).

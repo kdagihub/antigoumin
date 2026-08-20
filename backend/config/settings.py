@@ -4,22 +4,60 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
+def env_list(name: str, default: str = "") -> list[str]:
+    value = os.environ.get(name, default)
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def build_csrf_trusted_origins(allowed_hosts: list[str]) -> list[str]:
+    origins = env_list("CSRF_TRUSTED_ORIGINS", "")
+    seen = set(origins)
+
+    # L'admin Django est servi sur le domaine API : il doit être trusted aussi.
+    for host in allowed_hosts:
+        if host in ("*", ""):
+            continue
+        for scheme in ("https", "http"):
+            origin = f"{scheme}://{host}"
+            if origin not in seen:
+                origins.append(origin)
+                seen.add(origin)
+
+    return origins
+
+
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-insecure-change-me")
 DEBUG = os.environ.get("DJANGO_DEBUG", "True") == "True"
-ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "*").split(",")
+ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "*") or ["*"]
+CORS_ALLOWED_ORIGINS = env_list(
+    "CORS_ALLOWED_ORIGINS",
+    "http://localhost:5173,http://127.0.0.1:5173",
+)
+CSRF_TRUSTED_ORIGINS = build_csrf_trusted_origins(ALLOWED_HOSTS)
+CORS_ALLOW_CREDENTIALS = True
+
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = True
 
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "corsheaders",
     "core",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -48,15 +86,10 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
+from config.database import get_database_config
+
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("POSTGRES_DB", "antigoumin"),
-        "USER": os.environ.get("POSTGRES_USER", "antigoumin"),
-        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "antigoumin"),
-        "HOST": os.environ.get("POSTGRES_HOST", "db"),
-        "PORT": os.environ.get("POSTGRES_PORT", "5432"),
-    }
+    "default": get_database_config(),
 }
 
 CACHES = {
@@ -82,6 +115,7 @@ JWT_ACCESS_TOKEN_LIFETIME = timedelta(
 )
 
 GOOGLE_OAUTH_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID", "")
+GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET", "")
 
 LANGUAGE_CODE = "fr-fr"
 TIME_ZONE = "Africa/Abidjan"
@@ -90,6 +124,14 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"

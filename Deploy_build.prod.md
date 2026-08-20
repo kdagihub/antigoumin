@@ -119,13 +119,17 @@ Variables backend Dokploy (minimum) :
 DJANGO_DEBUG=False
 DJANGO_SECRET_KEY=<secret>
 DJANGO_ALLOWED_HOSTS=antigoumin-api.ciacems.site,api.antigoumin.net
-POSTGRES_DB=antigoumin
-POSTGRES_USER=antigoumin
-POSTGRES_PASSWORD=<secret>
-POSTGRES_HOST=<host-postgres-dokploy>
-POSTGRES_PORT=5432
+CORS_ALLOWED_ORIGINS=https://antigoumin.ciacems.site,https://antigoumin.net
+CSRF_TRUSTED_ORIGINS=https://antigoumin.ciacems.site,https://antigoumin.net,https://antigoumin-api.ciacems.site,https://api.antigoumin.net
+DATABASE_URL=postgres://<user>:<password>@<host>:5432/<db>
 REDIS_URL=redis://<host-redis>:6379/1
 JWT_SECRET_KEY=<secret>
 GOOGLE_OAUTH_CLIENT_ID=<client-id>.apps.googleusercontent.com
-GUNICORN_WORKERS=2
+```
+
+Volumes Dokploy (Advanced) :
+
+```text
+agm-media   → /app/media
+agm-static  → /app/staticfiles
 ```

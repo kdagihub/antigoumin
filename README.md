@@ -78,8 +78,11 @@ Variables d'environnement à configurer sur Dokploy :
 | `DJANGO_DEBUG` | `False` en production |
 | `DJANGO_SECRET_KEY` | Clé secrète Django |
 | `DJANGO_ALLOWED_HOSTS` | `antigoumin-api.ciacems.site,api.antigoumin.net` |
-| `POSTGRES_*` | Connexion PostgreSQL |
+| `CORS_ALLOWED_ORIGINS` | `https://antigoumin.ciacems.site,https://antigoumin.net` |
+| `CSRF_TRUSTED_ORIGINS` | Frontends + domaines API (`https://antigoumin-api.ciacems.site`, …) |
+| `DATABASE_URL` | `postgres://user:pass@host:5432/antigoumin` |
 | `REDIS_URL` | URL Redis (ex: `redis://redis:6379/1`) |
 | `JWT_SECRET_KEY` | Secret de signature JWT |
 | `GOOGLE_OAUTH_CLIENT_ID` | Client ID Google OAuth |
-| `GUNICORN_WORKERS` | Nombre de workers (défaut: 2) |
+
+Un template complet est disponible dans `.env.example`.
