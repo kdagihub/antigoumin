@@ -24,7 +24,7 @@ class UserAdmin(BaseUserAdmin):
         ("Profil", {"fields": ("first_name", "last_name", "phone_number")}),
         ("OAuth", {"fields": ("auth_provider", "google_id")}),
         ("Abonnement", {"fields": ("subscription_end_date",)}),
-        ("Permissions", {"fields": ("is_active",)}),
+        ("Permissions", {"fields": ("is_active", "is_staff", "is_superuser")}),
     )
     add_fieldsets = (
         (
