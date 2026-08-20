@@ -1,0 +1,19 @@
+services:
+  backend:
+    image: ${BACKEND_IMAGE:-ciacems/agm:backend-latest}
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+      platforms:
+        - linux/amd64
+
+  frontend:
+    image: ${FRONTEND_IMAGE:-ciacems/agm:frontend-latest}
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://antigoumin-api.ciacems.site}
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
+      platforms:
+        - linux/amd64
