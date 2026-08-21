@@ -5,11 +5,6 @@ from django.core.mail import EmailMessage
 
 logger = logging.getLogger(__name__)
 
-SPAM_NOTICE = (
-    "Si vous ne voyez pas ce message dans votre boîte de réception, "
-    "vérifiez vos courriers indésirables (spam)."
-)
-
 
 def email_configured() -> bool:
     return bool(settings.EMAIL_HOST and settings.EMAIL_HOST_USER)
@@ -25,7 +20,7 @@ def send_transactional_email(
 ) -> None:
     if not to_email:
         return
-    message = f"{body.strip()}\n\n--\nAntiGoumin — {SPAM_NOTICE}"
+    message = body.strip()
     if not email_configured() and settings.DEBUG:
         logger.info("Email (mode log) → %s : %s\n%s", to_email, subject, message)
         return

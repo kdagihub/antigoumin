@@ -14,7 +14,7 @@ import {
   type InAppNotification,
 } from '@/api/notifications'
 import VerificationBanner from '@/components/VerificationBanner.vue'
-import AppShell from '@/layouts/AppShell.vue'
+import DashboardShell from '@/layouts/DashboardShell.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
@@ -128,7 +128,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <AppShell>
+  <DashboardShell>
     <VerificationBanner />
     <Card v-if="auth.user">
       <template #title>
@@ -247,7 +247,7 @@ onMounted(async () => {
         </div>
       </template>
     </Card>
-  </AppShell>
+  </DashboardShell>
 </template>
 
 <style scoped>

@@ -48,6 +48,7 @@ class AccountVerificationTests(TestCase):
             response = authenticate_google("id-token")
         self.assertTrue(response.user.email_verified)
         self.assertFalse(response.user.phone_verified)
+        self.assertTrue(response.user.is_fully_verified)
 
     @patch("core.auth.verification.notify_user_by_email")
     @patch("core.auth.verification.send_sms")
@@ -95,6 +96,36 @@ class AccountVerificationTests(TestCase):
             headers={"Authorization": f"Bearer {token}"},
         )
         self.assertEqual(response.status_code, 403)
+
+    def test_search_allowed_with_email_only_verified(self):
+        user = User.objects.create_user(
+            email="email-only@example.com",
+            password="strong-password",
+            phone_number="2250700000016",
+            email_verified_at=timezone.now(),
+        )
+        token = create_access_token(user.id)
+        client = TestClient(api)
+        response = client.get(
+            "/search/?phone=0700000017",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        self.assertNotEqual(response.status_code, 403)
+
+    def test_search_allowed_with_phone_only_verified(self):
+        user = User.objects.create_user(
+            email="phone-only@example.com",
+            password="strong-password",
+            phone_number="2250700000018",
+            phone_verified_at=timezone.now(),
+        )
+        token = create_access_token(user.id)
+        client = TestClient(api)
+        response = client.get(
+            "/search/?phone=0700000019",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        self.assertNotEqual(response.status_code, 403)
 
     @patch("core.contact.services.send_transactional_email")
     def test_contact_form_routes_to_privacy(self, send_email):

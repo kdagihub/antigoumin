@@ -51,6 +51,35 @@ const trustValues = [
   },
 ]
 
+const heroServiceActions = [
+  {
+    id: 'declaration',
+    label: 'Déclarer / officialiser ma relation',
+    price: '300 FCFA',
+    icon: 'M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z',
+    accent: 'border-rose-400/30 hover:border-[#ED147D]/60 hover:bg-[#ED147D]/10',
+    route: '/app/declarations',
+  },
+  {
+    id: 'transparency',
+    label: 'Faire un test de Transparence / de fidélité',
+    price: '550 FCFA',
+    icon: 'M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5',
+    accent: 'border-amber-400/30 hover:border-amber-300/60 hover:bg-amber-400/10',
+    route: '/app/transparence',
+  },
+  {
+    id: 'alliance',
+    label: 'Obtenir mon Alliance Digitale',
+    price: '990 FCFA/mois',
+    icon: 'M12 2l2.4 4.8L20 8l-3.6 3.5L17.5 18 12 15.2 6.5 18l1.1-6.5L4 8l5.6-1.2L12 2z',
+    iconFill: true,
+    accent: 'border-amber-300/40 hover:border-amber-200/70 hover:bg-amber-400/10',
+    hash: '#alliance-vip',
+    route: '/app/abonnement',
+  },
+]
+
 async function handleVerify() {
   const q = phoneQuery.value.trim()
   checkoutError.value = ''
@@ -62,7 +91,7 @@ async function handleVerify() {
     return
   }
   if (!auth.isFullyVerified) {
-    await router.push('/profil')
+    await router.push('/app')
     return
   }
   if (!q) {
@@ -77,6 +106,27 @@ async function handleVerify() {
       err instanceof ApiError ? err.message : 'Paiement impossible pour le moment.'
     paying.value = false
   }
+}
+
+async function handleServiceAction(action: (typeof heroServiceActions)[number]) {
+  if (!auth.isAuthenticated) {
+    if (action.hash) {
+      await router.push({ path: '/', hash: action.hash })
+      return
+    }
+    await router.push({
+      name: 'login',
+      query: { redirect: action.route },
+    })
+    return
+  }
+
+  if (!auth.isFullyVerified) {
+    await router.push('/app/profil')
+    return
+  }
+
+  await router.push(action.route)
 }
 </script>
 
@@ -274,6 +324,67 @@ async function handleVerify() {
           </RouterLink>
         </div>
       </div>
+        </div>
+      </div>
+
+      <!-- Actions services (CTA secondaires) -->
+      <div class="relative z-20 w-full px-5 pt-6 lg:px-10">
+        <div class="mx-auto grid max-w-7xl gap-3 sm:grid-cols-2 lg:grid-cols-3 lg:gap-4">
+          <button
+            v-for="action in heroServiceActions"
+            :key="action.id"
+            type="button"
+            class="group flex items-center gap-4 rounded-2xl border bg-white/5 p-4 text-left backdrop-blur-md transition duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ED147D]"
+            :class="action.accent"
+            @click="handleServiceAction(action)"
+          >
+            <span
+              class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/10 text-[#ED147D] transition group-hover:scale-105 group-hover:bg-[#ED147D]/15"
+            >
+              <svg
+                v-if="action.iconFill"
+                class="h-6 w-6 text-amber-300"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path :d="action.icon" />
+              </svg>
+              <svg
+                v-else
+                class="h-6 w-6"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+                aria-hidden="true"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" :d="action.icon" />
+              </svg>
+            </span>
+            <span class="min-w-0 flex-1">
+              <span class="block font-display text-sm font-bold leading-snug text-white sm:text-base">
+                {{ action.label }}
+              </span>
+              <span
+                class="mt-1 inline-flex rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-slate-300"
+              >
+                {{ action.price }}
+              </span>
+            </span>
+            <svg
+              class="h-5 w-5 shrink-0 text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-white"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z"
+                clip-rule="evenodd"
+              />
+            </svg>
+          </button>
         </div>
       </div>
 

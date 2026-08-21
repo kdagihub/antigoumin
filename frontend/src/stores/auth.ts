@@ -6,12 +6,11 @@ import { getStoredToken, setStoredToken } from '@/api/client'
 import * as verificationApi from '@/api/verification'
 import type { LoginPayload, RegisterPayload, User } from '@/types/user'
 
-export function postAuthPath(sessionUser: User | null | undefined): string {
-  if (!sessionUser) return '/connexion'
-  if (!sessionUser.phone_number || !sessionUser.phone_verified) {
-    return '/verifier-telephone'
+export function postAuthPath(sessionUser?: User | null): string {
+  if (sessionUser && !sessionUser.is_fully_verified) {
+    return '/app/profil'
   }
-  return '/profil'
+  return '/app'
 }
 
 export const useAuthStore = defineStore('auth', () => {

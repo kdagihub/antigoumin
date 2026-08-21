@@ -14,6 +14,6 @@ const router = useRouter()
     <Message severity="error" :closable="false">
       Le paiement a été annulé, a échoué ou a expiré. Aucun service n’a été débloqué.
     </Message>
-    <Button class="mt-4" label="Retour au profil" @click="router.push('/profil')" />
+    <Button class="mt-4" label="Retour à mon espace" @click="router.push('/app')" />
   </AppShell>
 </template>

@@ -158,10 +158,10 @@ onBeforeUnmount(() => {
         <div class="hidden items-center gap-3 lg:flex">
           <RouterLink
             v-if="auth.isAuthenticated"
-            to="/profil"
+            to="/app"
             class="rounded-xl border border-transparent px-4 py-2.5 text-sm font-bold text-blue-950 transition hover:bg-slate-100"
           >
-            Mon profil
+            Mon espace
           </RouterLink>
           <template v-else>
             <RouterLink
@@ -293,11 +293,11 @@ onBeforeUnmount(() => {
         <div class="mt-5 flex flex-col gap-3 border-t border-slate-200 pt-5">
           <RouterLink
             v-if="auth.isAuthenticated"
-            to="/profil"
+            to="/app"
             class="inline-flex w-full items-center justify-center rounded-xl bg-[#ED147D] px-5 py-3.5 text-base font-bold text-white shadow-md shadow-rose-200/60 transition hover:bg-[#d4126f]"
             @click="closeMobileMenu"
           >
-            Mon profil
+            Mon espace
           </RouterLink>
           <template v-else>
             <RouterLink

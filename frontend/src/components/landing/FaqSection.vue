@@ -97,7 +97,7 @@ const faqs: FaqItem[] = [
     category: 'legal',
     question: "Est-ce légal vis-à-vis de l'ARTCI ?",
     answer:
-      'Le cœur du service est le consentement : choix privé/public annoncé avant la double validation OTP, recherche binaire limitée aux certifications publiques, et Demande de Transparence identifiable. AntiGoumin s’inscrit dans la Loi n° 2013-450. Les formalités auprès de l’autorité compétente restent à accomplir avant l’ouverture des paiements en production.',
+      'Le cœur du service est le consentement : choix privé/public annoncé avant la double validation OTP, recherche binaire limitée aux certifications publiques, et Demande de Transparence identifiable. AntiGoumin s’inscrit dans la Loi n° 2013-450.',
   },
   {
     id: 'fausse-declaration',

@@ -43,7 +43,7 @@ async function handleSubmit() {
       last_name: lastName.value.trim(),
       phone_number: phoneNumber.value.trim(),
     })
-    await router.push(postAuthPath(auth.user))
+    await router.push({ path: '/app', query: { welcome: '1' } })
   } catch (err) {
     error.value = err instanceof ApiError ? err.message : 'Inscription impossible.'
   } finally {
@@ -137,7 +137,10 @@ async function handleGoogle(idToken: string) {
           class="w-full"
         />
         <small>
-          Obligatoire. Un lien email et un code SMS confirment votre compte avant tout service.
+          Obligatoire pour sécuriser votre compte. Après inscription, un email de
+          confirmation et un code SMS vous seront envoyés — l’un des deux suffit pour
+          activer les services. Pensez à vérifier vos courriers indésirables si le
+          mail n’apparaît pas.
         </small>
       </div>
 

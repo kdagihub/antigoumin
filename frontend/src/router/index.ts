@@ -23,10 +23,44 @@ const router = createRouter({
       meta: { guest: true },
     },
     {
-      path: '/profil',
+      path: '/app',
+      name: 'dashboard',
+      component: () => import('@/views/dashboard/DashboardHomeView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/app/declarations',
+      name: 'dashboard-declarations',
+      component: () => import('@/views/dashboard/DeclarationsView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/app/transparence',
+      name: 'dashboard-transparency',
+      component: () => import('@/views/dashboard/TransparencyView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/app/alliances',
+      name: 'dashboard-alliances',
+      component: () => import('@/views/dashboard/AlliancesView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/app/profil',
       name: 'profile',
       component: () => import('@/views/ProfileView.vue'),
       meta: { requiresAuth: true },
+    },
+    {
+      path: '/app/abonnement',
+      name: 'dashboard-subscription',
+      component: () => import('@/views/dashboard/SubscriptionView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/profil',
+      redirect: '/app/profil',
     },
     {
       path: '/verifier-email/:token',
@@ -35,9 +69,7 @@ const router = createRouter({
     },
     {
       path: '/verifier-telephone',
-      name: 'verify-phone',
-      component: () => import('@/views/VerifyPhoneView.vue'),
-      meta: { requiresAuth: true },
+      redirect: '/app/profil',
     },
     {
       path: '/contact',
@@ -97,7 +129,7 @@ router.beforeEach(async (to) => {
   }
 
   if (to.meta.guest && auth.isAuthenticated) {
-    return { name: 'profile' }
+    return { name: 'dashboard' }
   }
 
   return true

@@ -41,6 +41,6 @@ onMounted(async () => {
     <Message v-else-if="error" severity="error" :closable="false">{{ error }}</Message>
     <Message v-else-if="credited" severity="success" :closable="false">{{ message }}</Message>
     <Message v-else severity="warn" :closable="false">{{ message }}</Message>
-    <Button class="mt-4" label="Retour au profil" @click="router.push('/profil')" />
+    <Button class="mt-4" label="Retour à mon espace" @click="router.push('/app')" />
   </AppShell>
 </template>

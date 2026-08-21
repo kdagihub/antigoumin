@@ -42,7 +42,7 @@ onMounted(async () => {
     <Button
       v-if="!loading"
       class="mt-4"
-      label="Aller au profil"
+      label="Aller à mon espace"
       @click="router.push(auth.isAuthenticated ? postAuthPath(auth.user) : '/connexion')"
     />
   </AppShell>

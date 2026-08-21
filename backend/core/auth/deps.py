@@ -7,7 +7,7 @@ from .jwt import decode_access_token
 
 
 VERIFICATION_REQUIRED_MESSAGE = (
-    "Vérifiez votre email et votre téléphone avant d'utiliser les services."
+    "Vérifiez votre email ou votre téléphone avant d'utiliser les services."
 )
 
 

@@ -1,8 +1,12 @@
+import logging
+
 from django.conf import settings
 from django.core.cache import cache
 from ninja.errors import HttpError
 
 from core.notifications.email import send_transactional_email
+
+logger = logging.getLogger(__name__)
 
 
 class ContactServiceError(Exception):
@@ -47,17 +51,27 @@ def submit_contact(
     target = (
         settings.PRIVACY_EMAIL if dest == "privacy" else settings.CONTACT_EMAIL
     )
-    send_transactional_email(
-        target,
-        f"[AntiGoumin] Message {dest} — {name}",
-        (
-            f"Nom : {name}\n"
-            f"Email : {email}\n"
-            f"Destinataire : {dest}\n\n"
-            f"{message.strip()}"
-        ),
-        reply_to=email,
-    )
+    try:
+        send_transactional_email(
+            target,
+            f"[AntiGoumin] Message {dest} — {name}",
+            (
+                f"Nom : {name}\n"
+                f"Email : {email}\n"
+                f"Destinataire : {dest}\n\n"
+                f"{message.strip()}"
+            ),
+            reply_to=email,
+        )
+    except Exception as exc:
+        logger.exception("Envoi du message de contact vers %s impossible", target)
+        raise ContactServiceError(
+            502,
+            (
+                "L'envoi a échoué pour une raison technique. "
+                f"Écrivez-nous directement à {target}."
+            ),
+        ) from exc
     cache.set(key, count + 1, timeout=3600)
     return (
         "Votre message a bien été transmis. "

@@ -84,7 +84,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     @property
     def is_fully_verified(self) -> bool:
-        return self.email_verified and self.phone_verified
+        return self.email_verified or self.phone_verified
 
 
 class Declaration(models.Model):

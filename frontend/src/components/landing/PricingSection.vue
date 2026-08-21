@@ -11,7 +11,7 @@ const router = useRouter()
 const payingId = ref('')
 const checkoutError = ref('')
 const servicePath = computed(() =>
-  auth.isAuthenticated ? '/profil' : '/connexion',
+  auth.isAuthenticated ? '/app' : '/connexion',
 )
 
 const checkoutServices: Record<string, 'DECLARATION' | 'TRANSPARENCY_REQUEST'> = {
@@ -26,12 +26,12 @@ async function handleCardAction(cardId: string) {
     return
   }
   if (!auth.isFullyVerified) {
-    await router.push('/profil')
+    await router.push('/app/profil')
     return
   }
   const service = checkoutServices[cardId]
   if (!service) {
-    await router.push('/profil')
+    await router.push('/app/profil')
     return
   }
   payingId.value = cardId
