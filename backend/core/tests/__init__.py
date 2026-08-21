@@ -1,0 +1,1 @@
+"""Tests métier AntiGoumin."""

@@ -7,22 +7,33 @@ Ce document centralise le Cahier des Charges (CDC), les Spécifications (Specs),
 ## 1. Cahier des Charges (CDC)
 
 ### 1.1. Contexte et Concept
-**AntiGoumin** est une application web mobile (PWA) de "registre de confiance" pour les couples. Elle permet de déclarer une relation et de la faire valider par le partenaire via une double vérification (OTP SMS/Email). L'objectif est de lutter contre les fausses déclarations unilatérales et de fournir un espace où la fidélité et le sérieux d'une relation peuvent être "vérifiés" par un tiers.
+**AntiGoumin** est une PWA de registre de confiance mutuelle. Elle permet de conserver une relation privée ou de certifier publiquement un statut binaire après double validation OTP. La recherche ne concerne que les numéros inscrits ayant accepté une certification publique active. La plateforme ne publie ni compteur de relations, ni identité, ni historique.
 
 ### 1.2. Public Cible & Marché
 *   **Marché principal** : Côte d'Ivoire (et extension Afrique de l'Ouest).
 *   **Cible** : Jeunes adultes, utilisateurs de réseaux sociaux, habitués aux paiements Mobile Money.
 
-### 1.3. Modèle Économique (Monétisation)
-*   **Paywall / Abonnement** : 200 FCFA / mois (via Mobile Money : Wave, Orange, MTN, via agrégateur type Fedapay ou CinetPay).
-*   **Droits de l'abonnement** : Permet 3 déclarations maximum par mois et un accès illimité à la levée du floutage sur les recherches.
-*   **Hors abonnement** : La recherche fonctionne, mais les résultats (Photo et Nom du partenaire) sont floutés. L'utilisateur doit payer pour voir.
+### 1.3. Modèle Économique (Hybride — Pay-per-action + Abonnement)
+
+Quatre sources de revenus complémentaires :
+
+| Service | Prix | Modèle |
+|---|---|---|
+| **Vérification** | 200 FCFA | Statut binaire pour un numéro inscrit avec certification publique active |
+| **Déclaration** | 300 FCFA | Relation privée ou certification publique, toujours avec double validation OTP |
+| **Demande de Transparence** | 550 FCFA | Invitation identifiable, volontaire, privée et non trompeuse |
+| **Alliance Digitale VIP** | 1 200 FCFA/mois | Forfait d’actions, badge optionnel et notification neutre de fin |
+
+*   **Confidentialité de la vérification** : avant paiement, aucune information ne révèle si le numéro existe ou refuse la consultabilité.
+*   **Résultat** : `ENGAGED`, `AVAILABLE` ou `NOT_LISTED_OR_NOT_SEARCHABLE`.
+*   **Alliance VIP** : aucune alerte ne révèle une autre relation ; chaque partie reçoit seulement une notification neutre si l’Alliance prend fin.
 
 ### 1.4. User Flow Principal
 1.  **Inscription** : L'auteur (User A) s'inscrit avec son numéro de téléphone.
-2.  **Déclaration** : User A déclare User B (Numéro obligatoire, Email facultatif, Nom/Prénom, Photo). Le statut est `PENDING` (invisible publiquement).
-3.  **Validation (Le Pivot)** : User B reçoit un SMS avec un lien unique (ex: `antigoumin.ci/v/xyz`). User B clique et valide ("Oui, j'accepte"). Le statut passe à `VERIFIED`.
-4.  **Recherche Tierce** : User C cherche le numéro de User B. Le profil de User A apparaît (flouté). User C paie 200 FCFA pour déflouter.
+2.  **Déclaration** : User A choisit `PRIVATE` ou `PUBLIC_CERTIFIED`. La demande reste `PENDING` et invisible.
+3.  **Validation** : User B voit le mode choisi et son effet avant d’accepter par OTP. Une certification publique rend uniquement le statut binaire « En couple » consultable.
+4.  **Recherche Tierce** : User C paie **200 FCFA**. L’API ne retourne un statut que pour un numéro inscrit, consultable et certifié ; aucune identité ni donnée relationnelle détaillée n’est exposée.
+5.  **Demande de Transparence** : l’auteur est identifié. Le destinataire peut répondre, refuser, ignorer, bloquer ou signaler. Le silence n’est pas une preuve.
 
 ---
 
@@ -56,26 +67,48 @@ Ce document centralise le Cahier des Charges (CDC), les Spécifications (Specs),
 ```python
 # Utilisateur
 class User(AbstractBaseUser):
-    phone_number = CharField(unique=True)
-    is_active = BooleanField(default=True)
-    subscription_end_date = DateTimeField(null=True) # Gère l'accès au défloutage
+    email = EmailField(unique=True)
+    phone_number = CharField(blank=True)
+    subscription_end_date = DateTimeField(null=True)  # Alliance Digitale VIP
+    alliance_badge_enabled = BooleanField(default=False)
+    is_status_searchable = BooleanField(default=False)
 
 # Declaration
 class Declaration(Model):
-    author = ForeignKey(User, on_delete=CASCADE, related_name='declarations_made')
-    partner_phone = CharField(max_length=15) # Le numéro cherché par les tiers
+    author = ForeignKey(User)
+    partner_phone = CharField(max_length=15)
     partner_name = CharField(max_length=100)
     partner_photo = ImageField(upload_to='declarations/')
-    status = CharField(choices=[('PENDING', 'Pending'), ('VERIFIED', 'Verified'), ('REJECTED', 'Rejected')])
-    created_at = DateTimeField(auto_now_add=True)
+    relation_type = CharField(choices=[AMOUR, FLIRT, FIANCE, MARIAGE])
+    status = CharField(choices=[PENDING, VERIFIED, REJECTED, ENDED])
+    visibility = CharField(choices=[PRIVATE, PUBLIC_CERTIFIED])
+    accepted_by = ForeignKey(User, null=True)
+    payment = ForeignKey(Payment, null=True)
 
-# Transaction / Paiement
+# Paiement (multi-services)
 class Payment(Model):
-    user = ForeignKey(User, on_delete=CASCADE)
-    amount = IntegerField(default=200)
-    reference = CharField(unique=True) # Ref de l'agrégateur (Wave, CinetPay)
-    status = CharField(choices=[('SUCCESS', 'Success'), ('FAILED', 'Failed')])
-    created_at = DateTimeField(auto_now_add=True)
+    service_type = CharField(choices=[VERIFICATION, DECLARATION, TRANSPARENCY_REQUEST, ALLIANCE_VIP])
+    amount = IntegerField()
+    reference = CharField(unique=True)
+    status = CharField(choices=[SUCCESS, FAILED])
+    consumed = BooleanField(default=False)
+    metadata = JSONField(default=dict)
+
+# Accès vérification débloquée (24h par numéro)
+class PhoneVerificationAccess(Model):
+    user = ForeignKey(User)
+    phone = CharField(max_length=15)
+    payment = ForeignKey(Payment)
+    expires_at = DateTimeField()
+
+# Demande de Transparence
+class TransparencyRequest(Model):
+    requester = ForeignKey(User)
+    target_phone = CharField(max_length=15)
+    token = CharField(unique=True)
+    status = CharField(choices=[PENDING, ACCEPTED, REFUSED, EXPIRED, BLOCKED, REPORTED])
+    declared_status = CharField(choices=[ENGAGED, AVAILABLE, PREFER_NOT_TO_ANSWER])
+    expires_at = DateTimeField()
 ```
 
 ### 3.2. Architecture Docker (docker-compose)
@@ -86,11 +119,16 @@ L'environnement local aura 3 services :
 (Le frontend Vue.js peut tourner en local sur Vite `npm run dev`, et en prod, il sera buildé et servi par Nginx dans un conteneur séparé ou par Django).
 
 ### 3.3. Endpoints de l'API (Django Ninja)
-*   `POST /api/auth/register-login` : Connexion/Inscription via OTP.
-*   `POST /api/declarations/` : Créer une déclaration (upload photo + envoie OTP en background).
-*   `GET /api/declarations/verify/{token}` : Route accédée par le partenaire pour valider.
-*   `GET /api/search/?phone={num}` : Recherche. Renvoie les infos avec un flag `is_blurred: true` si l'utilisateur requérant n'a pas d'abonnement actif.
-*   `POST /api/payments/webhook/` : Route sécurisée recevant la confirmation de paiement de l'agrégateur.
+*   `GET /api/catalog/` : Tarifs et catalogue des 4 services.
+*   `POST /api/auth/register`, `/login`, `/google` : Authentification JWT.
+*   `GET /api/me` : Profil utilisateur (+ statut Alliance VIP).
+*   `POST /api/declarations/` : Créer une déclaration (300 FCFA, multipart + `payment_id`).
+*   `GET /api/declarations/partner-preview?phone=` : Prix et information de consentement, sans révéler d’autres relations.
+*   `GET /api/declarations/verify/{token}` : Aperçu du mode privé/public avant décision.
+*   `GET /api/search/?phone=` : Statut binaire après paiement (200 FCFA).
+*   `POST /api/transparency-requests/` : Envoyer une invitation identifiable (550 FCFA).
+*   `POST /api/transparency-requests/{token}/respond` : Répondre, refuser, bloquer ou signaler.
+*   `POST /api/payments/webhook/` : Webhook agrégateur (`service_type`, `metadata`).
 
 ---
 

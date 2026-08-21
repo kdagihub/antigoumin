@@ -1,54 +1,68 @@
-# frontend
+# Frontend AntiGoumin
 
-This template should help get you started developing with Vue 3 in Vite.
+Application PWA Vue 3 + PrimeVue pour le registre de confiance AntiGoumin.
 
-## Recommended IDE Setup
+## Stack
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+- Vue 3 (Composition API) + TypeScript
+- Vue Router + Pinia
+- PrimeVue + PrimeIcons
+- Axios (client API)
+- Tailwind CSS v4
+- Vite PWA
 
-## Recommended Browser Setup
+## Charte visuelle
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+- **Couleurs** : bleu turquoise (`#0E7490`) + rose corail (`#E11D48`) sur fond menthe clair (`#F0FDFA`)
+- **Typographie** : Plus Jakarta Sans (titres) + Figtree (corps)
+- **Icônes** : PrimeIcons uniquement (pas d'émoticônes)
+- **Accessibilité** : contrastes WCAG AA, focus visible, labels explicites
 
-## Type Support for `.vue` Imports in TS
+## Démarrage local
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
+Prérequis : Node.js 22+, backend Django sur le port 8000.
 
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
+```bash
+cd frontend
+cp .env.example .env
 npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
 npm run dev
 ```
 
-### Type-Check, Compile and Minify for Production
+- App : http://localhost:5173
+- API : http://localhost:8000/api/
 
-```sh
-npm run build
+Variables dans `.env` :
+
+| Variable | Description |
+|---|---|
+| `VITE_API_BASE_URL` | URL du backend (ex. `http://localhost:8000`) |
+| `VITE_GOOGLE_CLIENT_ID` | Client ID Google OAuth (connexion Google) |
+
+## Scripts
+
+```bash
+npm run dev          # Serveur de développement
+npm run build        # Build production
+npm run preview      # Prévisualiser le build
+npm run test:unit    # Tests Vitest
+npm run lint         # ESLint + Oxlint
 ```
 
-### Run Unit Tests with [Vitest](https://vitest.dev/)
+## Pages
 
-```sh
-npm run test:unit
-```
+| Route | Description |
+|---|---|
+| `/` | Accueil public |
+| `/connexion` | Connexion email / Google |
+| `/inscription` | Création de compte |
+| `/profil` | Profil utilisateur (authentifié) |
+| `/v/:token` | Placeholder validation partenaire (SMS) |
 
-### Lint with [ESLint](https://eslint.org/)
+## Build Docker (production)
 
-```sh
-npm run lint
+L'image est construite via `Dockerfile.prod` et publiée sur Docker Hub (`ciacems/agm:frontend-latest`).
+
+```bash
+docker buildx bake -f ../docker-compose.buildprod.yml frontend --push
 ```

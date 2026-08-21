@@ -19,10 +19,13 @@ antigoumin/
 │   └── core/
 └── frontend/
     ├── Dockerfile.prod          # Image prod (ciacems/agm:frontend-latest)
-    └── nginx.conf
+    ├── nginx.conf
+    └── src/                     # Vue 3 + PrimeVue PWA
 ```
 
 ## Démarrage local
+
+### Backend (Docker)
 
 ```bash
 cd antigoumin
@@ -33,6 +36,19 @@ docker compose up --build
 - Swagger : http://localhost:8000/api/docs
 - Healthcheck : http://localhost:8000/api/health
 - Admin Django : http://localhost:8000/admin/
+
+### Frontend (Vite)
+
+Dans un second terminal :
+
+```bash
+cd antigoumin/frontend
+cp .env.example .env
+npm install
+npm run dev
+```
+
+- App : http://localhost:5173
 
 ## Build & push Docker Hub (production)
 
@@ -77,9 +93,12 @@ Variables d'environnement à configurer sur Dokploy :
 |---|---|
 | `DJANGO_DEBUG` | `False` en production |
 | `DJANGO_SECRET_KEY` | Clé secrète Django |
-| `DJANGO_ALLOWED_HOSTS` | `antigoumin-api.ciacems.site,api.antigoumin.net` |
-| `CORS_ALLOWED_ORIGINS` | `https://antigoumin.ciacems.site,https://antigoumin.net` |
-| `CSRF_TRUSTED_ORIGINS` | Frontends + domaines API (`https://antigoumin-api.ciacems.site`, …) |
+| `DJANGO_ALLOWED_HOSTS` | `antigoumin-api.ciacems.site,api.antigoumin.live` |
+| `CORS_ALLOWED_ORIGINS` | `https://antigoumin.ciacems.site,https://antigoumin.live` |
+| `CSRF_TRUSTED_ORIGINS` | Frontends + domaines API (`https://api.antigoumin.live`, …) |
+| `FRONTEND_BASE_URL` | `https://antigoumin.live` (liens SMS/email) |
+| `D7_TOKEN` / `D7_CLIENT_ID` / `D7_CLIENT_SECRET` | Identifiants SMS D7 Networks |
+| `EMAIL_HOST` / `EMAIL_USER` / `EMAIL_PASSWORD` | SMTP Hostinger (`smtp.hostinger.com:465`) |
 | `DATABASE_URL` | `postgres://user:pass@host:5432/antigoumin` |
 | `REDIS_URL` | URL Redis (ex: `redis://redis:6379/1`) |
 | `JWT_SECRET_KEY` | Secret de signature JWT |

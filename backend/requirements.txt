@@ -15,6 +15,7 @@ django-cors-headers==4.9.0
 django-ninja==1.6.3
 dnspython==2.8.0
 email-validator==2.3.0
+geniuspay==1.2.2
 google-auth==2.56.3
 hyperlink==21.0.0
 idna==3.19

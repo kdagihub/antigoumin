@@ -83,10 +83,10 @@ API de production (phase 1) :
 VITE_API_BASE_URL=https://antigoumin-api.ciacems.site
 ```
 
-API de production (phase 2 — domaines finaux) :
+API de production (domaine officiel) :
 
 ```sh
-VITE_API_BASE_URL=https://api.antigoumin.net
+VITE_API_BASE_URL=https://api.antigoumin.live
 ```
 
 Google OAuth (même Client ID que le backend) :
@@ -118,13 +118,24 @@ Variables backend Dokploy (minimum) :
 ```sh
 DJANGO_DEBUG=False
 DJANGO_SECRET_KEY=<secret>
-DJANGO_ALLOWED_HOSTS=antigoumin-api.ciacems.site,api.antigoumin.net
-CORS_ALLOWED_ORIGINS=https://antigoumin.ciacems.site,https://antigoumin.net
-CSRF_TRUSTED_ORIGINS=https://antigoumin.ciacems.site,https://antigoumin.net,https://antigoumin-api.ciacems.site,https://api.antigoumin.net
+DJANGO_ALLOWED_HOSTS=antigoumin-api.ciacems.site,api.antigoumin.live
+CORS_ALLOWED_ORIGINS=https://antigoumin.ciacems.site,https://antigoumin.live,https://www.antigoumin.live
+CSRF_TRUSTED_ORIGINS=https://antigoumin.ciacems.site,https://antigoumin.live,https://www.antigoumin.live,https://antigoumin-api.ciacems.site,https://api.antigoumin.live
+FRONTEND_BASE_URL=https://antigoumin.live
 DATABASE_URL=postgres://<user>:<password>@<host>:5432/<db>
 REDIS_URL=redis://<host-redis>:6379/1
 JWT_SECRET_KEY=<secret>
 GOOGLE_OAUTH_CLIENT_ID=<client-id>.apps.googleusercontent.com
+D7_TOKEN=<token>
+D7_CLIENT_ID=<client-id>
+D7_CLIENT_SECRET=<client-secret>
+D7_ORIGINATOR=AntiGoumin
+EMAIL_HOST=smtp.hostinger.com
+EMAIL_PORT=465
+EMAIL_USER=contact@antigoumin.live
+EMAIL_PASSWORD=<mot-de-passe>
+EMAIL_USE_SSL=True
+DEFAULT_FROM_EMAIL=AntiGoumin <contact@antigoumin.live>
 ```
 
 Volumes Dokploy (Advanced) :

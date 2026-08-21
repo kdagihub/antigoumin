@@ -7,6 +7,14 @@ def get_database_config() -> dict:
 
     if database_url:
         parsed = urlparse(database_url)
+        if parsed.scheme == "sqlite":
+            database_name = parsed.path or ":memory:"
+            if database_name in {"/:memory:", ":memory:"}:
+                database_name = ":memory:"
+            return {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": database_name,
+            }
         return {
             "ENGINE": "django.db.backends.postgresql",
             "NAME": parsed.path.lstrip("/"),

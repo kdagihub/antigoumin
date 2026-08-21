@@ -51,7 +51,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "corsheaders",
-    "core",
+    "core.apps.CoreConfig",
+    "geniuspay",
 ]
 
 MIDDLEWARE = [
@@ -116,6 +117,78 @@ JWT_ACCESS_TOKEN_LIFETIME = timedelta(
 
 GOOGLE_OAUTH_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID", "")
 GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET", "")
+
+FRONTEND_BASE_URL = os.environ.get("FRONTEND_BASE_URL", "http://localhost:5173")
+PAYMENT_WEBHOOK_SECRET = os.environ.get("PAYMENT_WEBHOOK_SECRET", "")
+GENIUSPAY_BASE_URL = os.environ.get(
+    "GENIUSPAY_BASE_URL", "https://geniuspay.ci/api/v1/merchant"
+)
+GENIUSPAY_API_KEY = os.environ.get("GENIUSPAY_API_KEY", "")
+GENIUSPAY_API_SECRET = os.environ.get("GENIUSPAY_API_SECRET", "")
+GENIUSPAY_WEBHOOK_SECRET = os.environ.get("GENIUSPAY_WEBHOOK_SECRET", "")
+GENIUSPAY_ENVIRONMENT = os.environ.get("GENIUSPAY_ENVIRONMENT", "sandbox")
+GENIUSPAY_TIMEOUT = int(os.environ.get("GENIUSPAY_TIMEOUT", "30"))
+GENIUSPAY = {
+    "API_KEY": GENIUSPAY_API_KEY,
+    "API_SECRET": GENIUSPAY_API_SECRET,
+    "WEBHOOK_SECRET": GENIUSPAY_WEBHOOK_SECRET or None,
+    "SANDBOX": GENIUSPAY_ENVIRONMENT != "live",
+    "ENVIRONMENT": GENIUSPAY_ENVIRONMENT,
+    "TIMEOUT": GENIUSPAY_TIMEOUT,
+}
+
+D7_CLIENT_ID = os.environ.get("D7_CLIENT_ID", "")
+D7_CLIENT_SECRET = os.environ.get("D7_CLIENT_SECRET", "")
+D7_TOKEN = os.environ.get("D7_TOKEN", "")
+D7_ORIGINATOR = os.environ.get("D7_ORIGINATOR", "AntiGoumin")
+D7_API_BASE_URL = os.environ.get("D7_API_BASE_URL", "https://api.d7networks.com")
+
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "465"))
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER") or os.environ.get("EMAIL_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD") or os.environ.get(
+    "EMAIL_PASSWORD", ""
+)
+EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "True" if EMAIL_PORT == 465 else "False") == "True"
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True" if EMAIL_PORT == 587 else "False") == "True"
+if EMAIL_USE_SSL:
+    EMAIL_USE_TLS = False
+DEFAULT_FROM_EMAIL = os.environ.get(
+    "DEFAULT_FROM_EMAIL",
+    EMAIL_HOST_USER or "noreply@antigoumin.live",
+)
+SERVER_EMAIL = os.environ.get("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
+EMAIL_BACKEND = (
+    "django.core.mail.backends.smtp.EmailBackend"
+    if EMAIL_HOST
+    else "django.core.mail.backends.console.EmailBackend"
+)
+VERIFICATION_TOKEN_TTL = timedelta(
+    minutes=int(os.environ.get("VERIFICATION_TOKEN_TTL_MINUTES", "15"))
+)
+VERIFICATION_ACCESS_TTL_HOURS = int(os.environ.get("VERIFICATION_ACCESS_TTL_HOURS", "24"))
+TRANSPARENCY_REQUEST_TTL_HOURS = int(
+    os.environ.get("TRANSPARENCY_REQUEST_TTL_HOURS", "48")
+)
+TRANSPARENCY_REQUEST_COOLDOWN_HOURS = int(
+    os.environ.get("TRANSPARENCY_REQUEST_COOLDOWN_HOURS", "168")
+)
+SUBSCRIPTION_DURATION_DAYS = int(os.environ.get("SUBSCRIPTION_DURATION_DAYS", "30"))
+CONTACT_EMAIL = os.environ.get("CONTACT_EMAIL", "contact@antigoumin.live")
+PRIVACY_EMAIL = os.environ.get("PRIVACY_EMAIL", "privacy@antigoumin.live")
+EMAIL_VERIFICATION_TTL_HOURS = int(os.environ.get("EMAIL_VERIFICATION_TTL_HOURS", "24"))
+PHONE_OTP_TTL_MINUTES = int(os.environ.get("PHONE_OTP_TTL_MINUTES", "10"))
+PHONE_OTP_RESEND_COOLDOWN_SECONDS = int(
+    os.environ.get("PHONE_OTP_RESEND_COOLDOWN_SECONDS", "60")
+)
+PHONE_OTP_MAX_ATTEMPTS = int(os.environ.get("PHONE_OTP_MAX_ATTEMPTS", "5"))
+CONTACT_RATE_LIMIT_PER_HOUR = int(os.environ.get("CONTACT_RATE_LIMIT_PER_HOUR", "5"))
+MAX_UPLOAD_IMAGE_SIZE = int(os.environ.get("MAX_UPLOAD_IMAGE_SIZE", str(5 * 1024 * 1024)))
+ALLOWED_IMAGE_CONTENT_TYPES = ("image/jpeg", "image/png", "image/webp")
+
+from core.pricing import SERVICE_PRICES
+
+SERVICE_PRICES = SERVICE_PRICES
 
 LANGUAGE_CODE = "fr-fr"
 TIME_ZONE = "Africa/Abidjan"

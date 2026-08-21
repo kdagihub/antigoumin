@@ -1,3 +1,5 @@
+import axios, { type AxiosError, type AxiosRequestConfig } from 'axios'
+
 const TOKEN_KEY = 'ag_token'
 
 export class ApiError extends Error {
@@ -26,55 +28,36 @@ export function setStoredToken(token: string | null): void {
   }
 }
 
-interface RequestOptions extends Omit<RequestInit, 'body'> {
-  body?: unknown
-  auth?: boolean
-}
+export const api = axios.create({
+  baseURL: `${getBaseUrl()}/api`,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
 
-export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { body, auth = false, headers: customHeaders, ...rest } = options
-
-  const headers = new Headers(customHeaders)
-
-  if (body !== undefined && !(body instanceof FormData)) {
-    headers.set('Content-Type', 'application/json')
+api.interceptors.request.use((config) => {
+  const token = getStoredToken()
+  if (token && config.headers) {
+    config.headers.Authorization = `Bearer ${token}`
   }
+  return config
+})
 
-  if (auth) {
-    const token = getStoredToken()
-    if (token) {
-      headers.set('Authorization', `Bearer ${token}`)
+api.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError<{ detail?: string; message?: string }>) => {
+    if (error.response?.status === 401) {
+      setStoredToken(null)
     }
-  }
 
-  const response = await fetch(`${getBaseUrl()}/api${path}`, {
-    ...rest,
-    headers,
-    body: body instanceof FormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
-  })
+    const status = error.response?.status ?? 500
+    const data = error.response?.data
+    const message = data?.detail ?? data?.message ?? `Erreur serveur (${status})`
+    return Promise.reject(new ApiError(status, message))
+  },
+)
 
-  if (response.status === 204) {
-    return undefined as T
-  }
-
-  const payload: unknown = await response.json().catch(() => null)
-
-  if (!response.ok) {
-    const message = extractErrorMessage(payload, response.status)
-    throw new ApiError(response.status, message)
-  }
-
-  return payload as T
-}
-
-function extractErrorMessage(payload: unknown, status: number): string {
-  if (payload && typeof payload === 'object') {
-    if ('detail' in payload && typeof payload.detail === 'string') {
-      return payload.detail
-    }
-    if ('message' in payload && typeof payload.message === 'string') {
-      return payload.message
-    }
-  }
-  return `Erreur serveur (${status})`
+export async function apiRequest<T>(path: string, config?: AxiosRequestConfig): Promise<T> {
+  const response = await api.request<T>({ url: path, ...config })
+  return response.data
 }

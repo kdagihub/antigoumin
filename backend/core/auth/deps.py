@@ -6,6 +6,11 @@ from core.models import User
 from .jwt import decode_access_token
 
 
+VERIFICATION_REQUIRED_MESSAGE = (
+    "Vérifiez votre email et votre téléphone avant d'utiliser les services."
+)
+
+
 class JWTAuth(HttpBearer):
     def authenticate(self, request, token):
         try:
@@ -20,4 +25,18 @@ class JWTAuth(HttpBearer):
         return user
 
 
+class JWTVerifiedAuth(JWTAuth):
+    def authenticate(self, request, token):
+        user = super().authenticate(request, token)
+        if user and not user.is_fully_verified:
+            raise HttpError(403, VERIFICATION_REQUIRED_MESSAGE)
+        return user
+
+
+def require_fully_verified(user: User) -> None:
+    if not user.is_fully_verified:
+        raise HttpError(403, VERIFICATION_REQUIRED_MESSAGE)
+
+
 jwt_auth = JWTAuth()
+jwt_verified_auth = JWTVerifiedAuth()

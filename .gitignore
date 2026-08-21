@@ -10,3 +10,6 @@ backend/staticfiles/
 .idea/
 .vscode/
 
+# Documents d'inspiration (hors spec produit)
+docs_inspi/
+

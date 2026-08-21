@@ -3,8 +3,15 @@ export interface User {
   email: string
   first_name: string
   last_name: string
+  phone_number: string
   auth_provider: 'email' | 'google' | 'apple'
   subscription_end_date: string | null
+  alliance_badge_enabled?: boolean
+  is_status_searchable?: boolean
+  email_verified?: boolean
+  phone_verified?: boolean
+  is_fully_verified?: boolean
+  has_alliance_vip?: boolean
 }
 
 export interface TokenResponse {
@@ -18,6 +25,7 @@ export interface RegisterPayload {
   password: string
   first_name?: string
   last_name?: string
+  phone_number: string
 }
 
 export interface LoginPayload {

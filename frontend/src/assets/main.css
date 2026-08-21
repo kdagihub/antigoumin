@@ -1,15 +1,18 @@
 @import 'tailwindcss';
+@import 'primeicons/primeicons.css';
 
 @theme {
-  --color-cream: #faf6f0;
-  --color-cream-dark: #f0e8dc;
-  --color-terracotta: #c45c3e;
-  --color-terracotta-dark: #a84a30;
-  --color-forest: #2d5016;
-  --color-forest-light: #3d6b1f;
-  --color-ink: #1a1a18;
-  --color-muted: #6b6560;
-  --font-display: 'Syne', system-ui, sans-serif;
+  --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
+  --color-primary: #ed147d;
+  --color-primary-hover: #d4126f;
+  --color-accent: #ed147d;
+  --color-accent-soft: #fff1f5;
+  --color-ink: #172554;
+  --color-muted: #475569;
+  --color-border: #e2e8f0;
+  --color-navy: #172554;
+  --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
   --font-body: 'Figtree', system-ui, sans-serif;
 }
 
@@ -19,11 +22,16 @@
   }
 
   body {
-    @apply bg-cream font-body text-ink min-h-dvh;
+    @apply bg-surface font-body text-ink min-h-dvh;
   }
 
   #app {
     @apply min-h-dvh;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
   }
 }
 
@@ -31,4 +39,38 @@
   .font-display {
     font-family: var(--font-display);
   }
+}
+
+/* PrimeVue overrides — charte bleu turquoise + rose corail, sans dégradés */
+.p-button.p-button-primary {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.p-button.p-button-primary:not(:disabled):hover {
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.p-button.p-button-secondary {
+  background-color: var(--color-accent-soft);
+  border-color: #fecdd3;
+  color: #be123c;
+}
+
+.p-button.p-button-secondary:not(:disabled):hover {
+  background-color: #ffe4e6;
+  border-color: #fda4af;
+  color: #9f1239;
+}
+
+.p-card {
+  border: 1px solid var(--color-border);
+  box-shadow: none;
+}
+
+.p-inputtext:enabled:focus,
+.p-password-input:enabled:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
 }
