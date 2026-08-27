@@ -17,6 +17,7 @@ import {
 } from '@/api/transparency'
 import DashboardShell from '@/layouts/DashboardShell.vue'
 import { useAuthStore } from '@/stores/auth'
+import { downloadTransparencyPdf } from '@/utils/moduleReceipts'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -27,6 +28,7 @@ const loadingList = ref(true)
 const paymentId = ref<number | null>(null)
 const paying = ref(false)
 const submitting = ref(false)
+const downloadingPdfId = ref<number | null>(null)
 const error = ref('')
 const success = ref('')
 const targetPhone = ref('')
@@ -50,6 +52,15 @@ const declaredStatusLabels: Record<string, string> = {
   ENGAGED: 'En couple',
   AVAILABLE: 'Disponible',
   PREFER_NOT_TO_ANSWER: 'Préfère ne pas répondre',
+}
+
+async function exportTransparencyPdf(item: TransparencyRequest) {
+  downloadingPdfId.value = item.id
+  try {
+    await downloadTransparencyPdf(item)
+  } finally {
+    downloadingPdfId.value = null
+  }
 }
 
 async function loadRequests() {
@@ -221,6 +232,15 @@ onMounted(async () => {
                   :severity="statusMeta[item.status]?.severity ?? 'info'"
                 />
               </div>
+              <Button
+                icon="pi pi-download"
+                severity="secondary"
+                text
+                rounded
+                aria-label="Télécharger en PDF"
+                :loading="downloadingPdfId === item.id"
+                @click="exportTransparencyPdf(item)"
+              />
             </div>
             <p class="transparency-page__meta">
               Envoyée le {{ new Date(item.created_at).toLocaleDateString('fr-CI') }}
@@ -318,6 +338,13 @@ onMounted(async () => {
 .transparency-page__cards {
   display: grid;
   gap: 0.875rem;
+}
+
+.transparency-page__card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
 .transparency-page__card-head h3 {

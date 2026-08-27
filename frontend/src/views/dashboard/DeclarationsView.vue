@@ -22,6 +22,7 @@ import {
 import { fetchCheckoutStatus, fetchUnusedPayment } from '@/api/payments'
 import DashboardShell from '@/layouts/DashboardShell.vue'
 import { useAuthStore } from '@/stores/auth'
+import { downloadDeclarationPdf } from '@/utils/moduleReceipts'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -33,6 +34,7 @@ const paymentId = ref<number | null>(null)
 const paying = ref(false)
 const submitting = ref(false)
 const endingId = ref<number | null>(null)
+const downloadingPdfId = ref<number | null>(null)
 const error = ref('')
 const success = ref('')
 const previewNotice = ref('')
@@ -74,6 +76,15 @@ const statusMeta: Record<
   VERIFIED: { label: 'Relation certifiée', severity: 'success' },
   REJECTED: { label: 'Refusée', severity: 'danger' },
   ENDED: { label: 'Terminée', severity: 'secondary' },
+}
+
+async function exportDeclarationPdf(item: Declaration) {
+  downloadingPdfId.value = item.id
+  try {
+    await downloadDeclarationPdf(item)
+  } finally {
+    downloadingPdfId.value = null
+  }
 }
 
 async function loadDeclarations() {
@@ -346,15 +357,26 @@ onMounted(async () => {
               {{ item.visibility === 'PUBLIC_CERTIFIED' ? 'Publique' : 'Privée' }} ·
               {{ new Date(item.created_at).toLocaleDateString('fr-CI') }}
             </p>
-            <Button
-              v-if="item.status === 'VERIFIED'"
-              label="Mettre fin à la relation"
-              severity="secondary"
-              text
-              size="small"
-              :loading="endingId === item.id"
-              @click="terminateDeclaration(item)"
-            />
+            <div class="declarations-page__card-actions">
+              <Button
+                label="Télécharger en PDF"
+                icon="pi pi-download"
+                severity="secondary"
+                text
+                size="small"
+                :loading="downloadingPdfId === item.id"
+                @click="exportDeclarationPdf(item)"
+              />
+              <Button
+                v-if="item.status === 'VERIFIED'"
+                label="Mettre fin à la relation"
+                severity="secondary"
+                text
+                size="small"
+                :loading="endingId === item.id"
+                @click="terminateDeclaration(item)"
+              />
+            </div>
           </template>
         </Card>
       </div>
@@ -481,6 +503,13 @@ onMounted(async () => {
   margin: 0.125rem 0 0.5rem;
   color: var(--color-muted);
   font-size: 0.875rem;
+}
+
+.declarations-page__card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
 }
 
 .mb-3 {

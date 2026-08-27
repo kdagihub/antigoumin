@@ -21,6 +21,7 @@ import {
 } from '@/api/alliances'
 import DashboardShell from '@/layouts/DashboardShell.vue'
 import { useAuthStore } from '@/stores/auth'
+import { downloadAlliancePdf } from '@/utils/moduleReceipts'
 
 const auth = useAuthStore()
 
@@ -31,6 +32,7 @@ const paying = ref(false)
 const decidingId = ref<number | null>(null)
 const endingId = ref<number | null>(null)
 const updatingBadgeId = ref<number | null>(null)
+const downloadingPdfId = ref<number | null>(null)
 const error = ref('')
 const success = ref('')
 const selectedDeclarationId = ref<number | null>(null)
@@ -92,6 +94,15 @@ function myBadgePublic(alliance: Alliance): boolean {
   return alliance.initiator_id === userId.value
     ? alliance.initiator_badge_public
     : alliance.partner_badge_public
+}
+
+async function exportAlliancePdf(item: Alliance) {
+  downloadingPdfId.value = item.id
+  try {
+    await downloadAlliancePdf(item, partnerName(item))
+  } finally {
+    downloadingPdfId.value = null
+  }
 }
 
 async function loadAlliancesData() {
@@ -320,6 +331,15 @@ onMounted(loadAlliancesData)
                   :severity="statusMeta[item.status].severity"
                 />
               </div>
+              <Button
+                icon="pi pi-download"
+                severity="secondary"
+                text
+                rounded
+                aria-label="Télécharger en PDF"
+                :loading="downloadingPdfId === item.id"
+                @click="exportAlliancePdf(item)"
+              />
             </div>
             <p v-if="item.subscription_end_date" class="alliances-page__meta">
               Abonnement actif jusqu'au
@@ -359,11 +379,24 @@ onMounted(loadAlliancesData)
       <div v-else class="alliances-page__cards">
         <Card v-for="item in historyAlliances" :key="item.id">
           <template #content>
-            <h3>{{ partnerName(item) }}</h3>
-            <Tag
-              :value="statusMeta[item.status]?.label ?? item.status"
-              :severity="statusMeta[item.status]?.severity ?? 'secondary'"
-            />
+            <div class="alliances-page__card-head">
+              <div>
+                <h3>{{ partnerName(item) }}</h3>
+                <Tag
+                  :value="statusMeta[item.status]?.label ?? item.status"
+                  :severity="statusMeta[item.status]?.severity ?? 'secondary'"
+                />
+              </div>
+              <Button
+                icon="pi pi-download"
+                severity="secondary"
+                text
+                rounded
+                aria-label="Télécharger en PDF"
+                :loading="downloadingPdfId === item.id"
+                @click="exportAlliancePdf(item)"
+              />
+            </div>
             <p class="alliances-page__meta">
               {{ new Date(item.created_at).toLocaleDateString('fr-CI') }}
             </p>
@@ -453,6 +486,13 @@ onMounted(loadAlliancesData)
 .alliances-page__cards {
   display: grid;
   gap: 0.875rem;
+}
+
+.alliances-page__card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
 .alliances-page__card-head h3 {

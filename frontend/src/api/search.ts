@@ -13,7 +13,24 @@ export interface SearchResult {
   price_fcfa: number
 }
 
+export interface VerificationHistoryItem {
+  id: number
+  phone: string
+  certified_status: Exclude<CertifiedStatus, 'PAYMENT_REQUIRED'>
+  amount_fcfa: number
+  consulted_at: string
+}
+
+export interface VerificationHistoryList {
+  items: VerificationHistoryItem[]
+  count: number
+}
+
 export function searchByPhone(phone: string): Promise<SearchResult> {
   const params = new URLSearchParams({ phone })
   return apiRequest(`/search/?${params.toString()}`)
+}
+
+export function fetchVerificationHistory(): Promise<VerificationHistoryList> {
+  return apiRequest('/search/history/')
 }
