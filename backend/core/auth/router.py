@@ -4,6 +4,7 @@ from core.auth.deps import jwt_auth, jwt_verified_auth
 
 from .schemas import (
     GoogleAuthSchema,
+    EmailUpdateSchema,
     LoginSchema,
     PasswordResetConfirmSchema,
     PasswordResetRequestSchema,
@@ -29,6 +30,7 @@ from .verification import (
     confirm_email_token,
     resend_email_verification,
     send_phone_otp,
+    set_user_email,
     set_user_phone,
     verify_phone_otp,
 )
@@ -56,6 +58,14 @@ def update_phone(request, payload: PhoneUpdateSchema):
     try:
         user = set_user_phone(request.auth, payload.phone_number)
         return user_to_schema(user)
+    except AuthServiceError as exc:
+        handle_auth_error(exc)
+
+
+@router.patch("/me/email", response=UserSchema, auth=jwt_auth)
+def update_email(request, payload: EmailUpdateSchema):
+    try:
+        return set_user_email(request.auth, str(payload.email))
     except AuthServiceError as exc:
         handle_auth_error(exc)
 

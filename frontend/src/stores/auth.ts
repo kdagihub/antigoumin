@@ -127,6 +127,11 @@ export const useAuthStore = defineStore('auth', () => {
     return user.value
   }
 
+  async function updateEmail(email: string) {
+    user.value = await verificationApi.updateEmail(email)
+    return user.value
+  }
+
   function logout() {
     clearSession()
   }
@@ -150,6 +155,7 @@ export const useAuthStore = defineStore('auth', () => {
     verifyPhone,
     verifyEmailToken,
     updatePhone,
+    updateEmail,
     logout,
   }
 })

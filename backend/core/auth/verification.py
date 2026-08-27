@@ -77,6 +77,44 @@ def resend_email_verification(user: User) -> VerificationMessageSchema:
     )
 
 
+def set_user_email(user: User, email: str):
+    if user.email_verified:
+        raise AuthServiceError(
+            400,
+            "Impossible de modifier un email déjà vérifié. Contactez le support.",
+        )
+    if user.auth_provider != User.AuthProvider.EMAIL:
+        raise AuthServiceError(
+            400,
+            "La modification d'email n'est pas disponible pour ce mode de connexion.",
+        )
+
+    normalized = User.objects.normalize_email(email.strip())
+    if not normalized:
+        raise AuthServiceError(400, "Adresse email invalide.")
+
+    taken = (
+        User.objects.filter(email=normalized, is_active=True)
+        .exclude(id=user.id)
+        .exists()
+    )
+    if taken:
+        raise AuthServiceError(400, "Un compte utilise déjà cette adresse email.")
+
+    previous = cache.get(_email_user_key(user.id))
+    if previous:
+        cache.delete(_email_token_key(previous))
+        cache.delete(_email_user_key(user.id))
+
+    if user.email != normalized:
+        user.email = normalized
+        user.email_verified_at = None
+        user.save(update_fields=["email", "email_verified_at"])
+
+    send_email_verification(user)
+    return user_to_schema(user)
+
+
 def _assert_phone_available(phone: str, user_id: int) -> None:
     taken = (
         User.objects.filter(phone_number=phone, is_active=True)
@@ -88,6 +126,11 @@ def _assert_phone_available(phone: str, user_id: int) -> None:
 
 
 def set_user_phone(user: User, phone_number: str):
+    if user.phone_verified:
+        raise AuthServiceError(
+            400,
+            "Impossible de modifier un téléphone déjà vérifié. Contactez le support.",
+        )
     try:
         normalized = normalize_phone(phone_number)
     except ValueError as exc:

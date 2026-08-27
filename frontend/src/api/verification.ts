@@ -5,6 +5,13 @@ export function resendEmailVerification(): Promise<{ message: string }> {
   return apiRequest('/auth/resend-email-verification', { method: 'POST' })
 }
 
+export function updateEmail(email: string): Promise<User> {
+  return apiRequest('/auth/me/email', {
+    method: 'PATCH',
+    data: { email },
+  })
+}
+
 export function verifyEmailToken(token: string): Promise<User> {
   return apiRequest(`/auth/verify-email/${token}`, { method: 'POST' })
 }

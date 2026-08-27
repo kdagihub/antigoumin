@@ -11,16 +11,51 @@ const auth = useAuthStore()
 const emailMessage = ref('')
 const emailError = ref('')
 const sendingEmail = ref(false)
+const editingEmail = ref(false)
+const correctedEmail = ref('')
+const savingEmail = ref(false)
 const otpCode = ref('')
 const otpMessage = ref('')
 const otpError = ref('')
 const sendingOtp = ref(false)
 const verifyingOtp = ref(false)
 const otpSent = ref(false)
+const editingPhone = ref(false)
+const correctedPhone = ref('')
+const savingPhone = ref(false)
 
 const needsEmail = computed(() => Boolean(auth.user && !auth.user.email_verified))
 const needsPhone = computed(() => Boolean(auth.user && !auth.user.phone_verified))
+const canEditEmail = computed(() => auth.user?.auth_provider === 'email')
 const visible = computed(() => Boolean(auth.user && !auth.isFullyVerified))
+
+function startEmailEdit() {
+  correctedEmail.value = auth.user?.email ?? ''
+  editingEmail.value = true
+  emailError.value = ''
+  emailMessage.value = ''
+}
+
+async function saveEmail() {
+  emailError.value = ''
+  emailMessage.value = ''
+  const nextEmail = correctedEmail.value.trim()
+  if (!nextEmail) {
+    emailError.value = 'Saisissez une adresse email valide.'
+    return
+  }
+  savingEmail.value = true
+  try {
+    await auth.updateEmail(nextEmail)
+    editingEmail.value = false
+    emailMessage.value =
+      'Adresse mise à jour. Un nouveau lien de confirmation vient d’être envoyé.'
+  } catch (err) {
+    emailError.value = err instanceof ApiError ? err.message : 'Modification impossible.'
+  } finally {
+    savingEmail.value = false
+  }
+}
 
 async function resendEmail() {
   emailError.value = ''
@@ -33,6 +68,36 @@ async function resendEmail() {
     emailError.value = err instanceof ApiError ? err.message : 'Envoi impossible.'
   } finally {
     sendingEmail.value = false
+  }
+}
+
+function startPhoneEdit() {
+  correctedPhone.value = auth.user?.phone_number ?? ''
+  editingPhone.value = true
+  otpSent.value = false
+  otpCode.value = ''
+  otpError.value = ''
+  otpMessage.value = ''
+}
+
+async function savePhone() {
+  otpError.value = ''
+  otpMessage.value = ''
+  const nextPhone = correctedPhone.value.trim()
+  if (nextPhone.length < 8) {
+    otpError.value = 'Saisissez un numéro de téléphone valide.'
+    return
+  }
+  savingPhone.value = true
+  try {
+    await auth.updatePhone(nextPhone)
+    editingPhone.value = false
+    otpSent.value = false
+    otpMessage.value = 'Numéro mis à jour. Vous pouvez maintenant recevoir le code SMS.'
+  } catch (err) {
+    otpError.value = err instanceof ApiError ? err.message : 'Modification impossible.'
+  } finally {
+    savingPhone.value = false
   }
 }
 
@@ -97,13 +162,53 @@ async function confirmOtp() {
           Un lien de confirmation vous a été envoyé. Pensez aussi à vérifier vos
           courriers indésirables (spam). Cette étape suffit à débloquer les services.
         </p>
-        <Button
-          label="Renvoyer l’email de confirmation"
-          icon="pi pi-envelope"
-          :loading="sendingEmail"
-          class="verification-card__action"
-          @click="resendEmail"
-        />
+
+        <template v-if="editingEmail">
+          <label class="verification-card__field">
+            <span>Nouvelle adresse email</span>
+            <InputText
+              v-model="correctedEmail"
+              type="email"
+              inputmode="email"
+              autocomplete="email"
+              placeholder="votre@email.com"
+              class="w-full"
+            />
+          </label>
+          <div class="verification-card__actions">
+            <Button
+              label="Enregistrer et renvoyer le lien"
+              icon="pi pi-check"
+              :loading="savingEmail"
+              @click="saveEmail"
+            />
+            <Button
+              label="Annuler"
+              severity="secondary"
+              text
+              :disabled="savingEmail"
+              @click="editingEmail = false"
+            />
+          </div>
+        </template>
+        <template v-else>
+          <Button
+            v-if="canEditEmail"
+            label="Corriger mon adresse email"
+            icon="pi pi-pencil"
+            severity="secondary"
+            outlined
+            class="verification-card__action"
+            @click="startEmailEdit"
+          />
+          <Button
+            label="Renvoyer l’email de confirmation"
+            icon="pi pi-envelope"
+            :loading="sendingEmail"
+            class="verification-card__action"
+            @click="resendEmail"
+          />
+        </template>
         <Message v-if="emailMessage" severity="success" :closable="false">
           {{ emailMessage }}
         </Message>
@@ -121,11 +226,48 @@ async function confirmOtp() {
           </div>
         </div>
 
-        <template v-if="!otpSent">
+        <template v-if="editingPhone">
+          <label class="verification-card__field">
+            <span>Nouveau numéro de téléphone</span>
+            <InputText
+              v-model="correctedPhone"
+              type="tel"
+              inputmode="tel"
+              autocomplete="tel"
+              placeholder="Ex. 07 00 00 00 00"
+              class="w-full"
+            />
+          </label>
+          <div class="verification-card__actions">
+            <Button
+              label="Enregistrer le numéro"
+              icon="pi pi-check"
+              :loading="savingPhone"
+              @click="savePhone"
+            />
+            <Button
+              label="Annuler"
+              severity="secondary"
+              text
+              :disabled="savingPhone"
+              @click="editingPhone = false"
+            />
+          </div>
+        </template>
+
+        <template v-else-if="!otpSent">
           <p class="verification-card__hint">
             Nous enverrons un code SMS à 6 chiffres. Une copie peut aussi arriver par email.
             Cette étape suffit à débloquer les services.
           </p>
+          <Button
+            label="Corriger mon numéro"
+            icon="pi pi-pencil"
+            severity="secondary"
+            outlined
+            class="verification-card__action"
+            @click="startPhoneEdit"
+          />
           <Button
             label="Recevoir le code SMS"
             icon="pi pi-mobile"
@@ -300,5 +442,9 @@ async function confirmOtp() {
 .verification-card__action :deep(.p-button) {
   width: 100%;
   justify-content: center;
+}
+
+.w-full {
+  width: 100%;
 }
 </style>

@@ -51,6 +51,10 @@ class PhoneUpdateSchema(Schema):
     phone_number: str = Field(min_length=8, max_length=20)
 
 
+class EmailUpdateSchema(Schema):
+    email: EmailStr
+
+
 class PhoneOtpVerifySchema(Schema):
     code: str
 

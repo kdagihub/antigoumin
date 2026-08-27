@@ -8,8 +8,8 @@ from ninja.testing import TestClient
 
 from core.api import api
 from core.auth.jwt import create_access_token
-from core.auth.services import authenticate_google, register_user
-from core.auth.verification import send_phone_otp, verify_phone_otp
+from core.auth.services import AuthServiceError, authenticate_google, register_user
+from core.auth.verification import send_phone_otp, set_user_email, set_user_phone, verify_phone_otp
 from core.contact.services import ContactServiceError, submit_contact
 from core.models import User
 from core.payments.services import PaymentServiceError, process_payment_webhook
@@ -34,6 +34,55 @@ class AccountVerificationTests(TestCase):
         self.assertFalse(response.user.phone_verified)
         self.assertFalse(response.user.is_fully_verified)
         _email.assert_called()
+
+    @patch("core.auth.verification.notify_user_by_email")
+    def test_unverified_user_can_correct_email(self, send_email):
+        user = User.objects.create_user(
+            email="typo@example.com",
+            password="strong-password",
+            phone_number="2250700000020",
+        )
+        updated = set_user_email(user, "correct@example.com")
+        user.refresh_from_db()
+        self.assertEqual(user.email, "correct@example.com")
+        self.assertEqual(updated.email, "correct@example.com")
+        self.assertFalse(user.email_verified)
+        send_email.assert_called_once()
+        self.assertEqual(send_email.call_args.args[0], "correct@example.com")
+
+    @patch("core.auth.verification.notify_user_by_email")
+    def test_verified_user_cannot_change_email(self, _send_email):
+        user = User.objects.create_user(
+            email="locked@example.com",
+            password="strong-password",
+            phone_number="2250700000021",
+            email_verified_at=timezone.now(),
+        )
+        with self.assertRaises(AuthServiceError):
+            set_user_email(user, "new@example.com")
+
+    @patch("core.auth.verification.notify_user_by_email")
+    def test_verified_user_cannot_change_phone(self, _send_email):
+        user = User.objects.create_user(
+            email="phone-locked@example.com",
+            password="strong-password",
+            phone_number="2250700000022",
+            phone_verified_at=timezone.now(),
+        )
+        with self.assertRaises(AuthServiceError):
+            set_user_phone(user, "0700000099")
+
+    @patch("core.auth.verification.notify_user_by_email")
+    def test_unverified_user_can_correct_phone(self, _send_email):
+        user = User.objects.create_user(
+            email="phone-fix@example.com",
+            password="strong-password",
+            phone_number="2250700000023",
+        )
+        set_user_phone(user, "0700000099")
+        user.refresh_from_db()
+        self.assertFalse(user.phone_verified)
+        self.assertIn("0700000099", user.phone_number)
 
     @patch("core.auth.services.google_id_token.verify_oauth2_token")
     def test_google_marks_email_verified_but_not_phone(self, verify_token):
