@@ -51,6 +51,10 @@ onMounted(async () => {
       })
       return
     }
+    if (status.credited && status.service_type === 'ALLIANCE_VIP') {
+      await router.replace({ path: '/app/alliances' })
+      return
+    }
   } catch (err) {
     error.value = err instanceof ApiError ? err.message : 'Statut de paiement indisponible.'
   } finally {

@@ -31,3 +31,10 @@ class AllianceResultSchema(Schema):
     id: int
     status: str
     message: str
+
+
+class EligibleDeclarationSchema(Schema):
+    id: int
+    partner_label: str
+    relation_type: str
+    role: str

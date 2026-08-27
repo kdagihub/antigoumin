@@ -9,7 +9,7 @@ from core.models import Alliance, Declaration, Payment, User
 from core.notifications.email import notify_user_by_email
 from core.notifications.sms import send_alliance_ended_sms_async
 
-from .schemas import AllianceResultSchema, AllianceSchema
+from .schemas import AllianceResultSchema, AllianceSchema, EligibleDeclarationSchema
 
 
 class AllianceServiceError(Exception):
@@ -39,6 +39,46 @@ def alliance_to_schema(alliance: Alliance) -> AllianceSchema:
         subscription_end_date=alliance.subscription_end_date,
         created_at=alliance.created_at,
     )
+
+
+def list_eligible_declarations(user: User) -> list[EligibleDeclarationSchema]:
+    declarations = (
+        Declaration.objects.filter(
+            status=Declaration.Status.VERIFIED,
+            ended_at__isnull=True,
+        )
+        .filter(models.Q(author=user) | models.Q(accepted_by=user))
+        .select_related("author", "accepted_by")
+        .order_by("-created_at")
+    )
+    blocked_ids = set(
+        Alliance.objects.filter(
+            declaration_id__in=declarations.values_list("id", flat=True),
+            status__in=[
+                Alliance.Status.PENDING_PARTNER,
+                Alliance.Status.ACTIVE,
+            ],
+        ).values_list("declaration_id", flat=True)
+    )
+    eligible: list[EligibleDeclarationSchema] = []
+    for declaration in declarations:
+        if declaration.id in blocked_ids:
+            continue
+        if declaration.author_id == user.id:
+            partner_label = declaration.partner_name
+            role = "initiator"
+        else:
+            partner_label = declaration.author.full_name or declaration.author.email
+            role = "partner"
+        eligible.append(
+            EligibleDeclarationSchema(
+                id=declaration.id,
+                partner_label=partner_label,
+                relation_type=declaration.relation_type,
+                role=role,
+            )
+        )
+    return eligible
 
 
 def create_pending_alliance(
