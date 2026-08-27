@@ -20,7 +20,33 @@ def has_verification_access(user: User, phone: str) -> bool:
         user=user,
         phone=phone,
         expires_at__gt=now,
+        used_at__isnull=True,
     ).exists()
+
+
+def consume_verification_access(user: User, phone: str, *, result_status: str) -> None:
+    """Marque l'accès payé comme consommé après affichage d'un résultat."""
+    now = timezone.now()
+    access = (
+        PhoneVerificationAccess.objects.filter(
+            user=user,
+            phone=phone,
+            expires_at__gt=now,
+            used_at__isnull=True,
+        )
+        .select_related("payment")
+        .order_by("-created_at")
+        .first()
+    )
+    if access is None:
+        return
+    access.used_at = now
+    access.result_status = result_status
+    access.save(update_fields=["used_at", "result_status"])
+    payment = access.payment
+    if payment and not payment.consumed:
+        payment.consumed = True
+        payment.save(update_fields=["consumed"])
 
 
 def get_unused_payment(user: User, service_type: ServiceType, *, payment_id: int | None) -> Payment | None:

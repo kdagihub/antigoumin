@@ -23,7 +23,7 @@ from core.models import (
     TransparencyRequest,
     User,
 )
-from core.search.services import search_by_phone
+from core.search.services import list_verification_history, search_by_phone
 from core.utils.phone import normalize_phone
 
 
@@ -54,6 +54,25 @@ class SafeSearchTests(TestCase):
         self.unlock("+2250700000099")
         result = search_by_phone(None, self.searcher, "+2250700000099")
         self.assertEqual(result.certified_status, "NOT_A_MEMBER")
+
+    def test_repeat_search_requires_new_payment(self):
+        phone = "+2250700000099"
+        self.unlock(phone)
+        first = search_by_phone(None, self.searcher, phone)
+        self.assertNotEqual(first.certified_status, "PAYMENT_REQUIRED")
+        second = search_by_phone(None, self.searcher, phone)
+        self.assertEqual(second.certified_status, "PAYMENT_REQUIRED")
+
+    def test_verification_history_lists_consumed_access(self):
+        phone = "+2250700000099"
+        self.unlock(phone)
+        search_by_phone(None, self.searcher, phone)
+        history = list_verification_history(self.searcher)
+        self.assertEqual(len(history), 1)
+        self.assertEqual(history[0].phone, normalize_phone(phone))
+        self.assertEqual(history[0].certified_status, "NOT_A_MEMBER")
+        self.assertEqual(history[0].amount_fcfa, 200)
+        self.assertIsNotNone(history[0].consulted_at)
 
     def test_vip_hidden_status_is_not_public(self):
         from datetime import timedelta

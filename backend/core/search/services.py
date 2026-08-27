@@ -2,12 +2,12 @@ from django.conf import settings
 from django.db.models import Q
 from ninja.errors import HttpError
 
-from core.models import Declaration, User
+from core.models import Declaration, PhoneVerificationAccess, User
 from core.pricing import ServiceType
 from core.utils.phone import normalize_phone
-from core.utils.subscription import has_verification_access
+from core.utils.subscription import consume_verification_access, has_verification_access
 
-from .schemas import SearchResponseSchema
+from .schemas import SearchResponseSchema, VerificationHistoryItemSchema
 
 
 class SearchServiceError(Exception):
@@ -44,29 +44,50 @@ def search_by_phone(request, user: User, phone: str) -> SearchResponseSchema:
         phone_number=normalized_phone,
         is_active=True,
     ).first()
+
     if target is None:
-        return SearchResponseSchema(
+        response = SearchResponseSchema(
             phone=normalized_phone,
             certified_status="NOT_A_MEMBER",
             price_fcfa=price_fcfa,
         )
-
-    if not target.is_status_searchable:
-        return SearchResponseSchema(
+    elif not target.is_status_searchable:
+        response = SearchResponseSchema(
             phone=normalized_phone,
             certified_status="STATUS_NOT_PUBLIC",
             price_fcfa=price_fcfa,
         )
+    else:
+        is_engaged = Declaration.objects.filter(
+            _active_public_declaration_filter(target),
+            status=Declaration.Status.VERIFIED,
+            visibility=Declaration.Visibility.PUBLIC_CERTIFIED,
+            ended_at__isnull=True,
+        ).exists()
+        response = SearchResponseSchema(
+            phone=normalized_phone,
+            certified_status="ENGAGED" if is_engaged else "REGISTERED_NO_DECLARATION",
+            price_fcfa=price_fcfa,
+        )
 
-    is_engaged = Declaration.objects.filter(
-        _active_public_declaration_filter(target),
-        status=Declaration.Status.VERIFIED,
-        visibility=Declaration.Visibility.PUBLIC_CERTIFIED,
-        ended_at__isnull=True,
-    ).exists()
+    consume_verification_access(user, normalized_phone, result_status=response.certified_status)
+    return response
 
-    return SearchResponseSchema(
-        phone=normalized_phone,
-        certified_status="ENGAGED" if is_engaged else "REGISTERED_NO_DECLARATION",
-        price_fcfa=price_fcfa,
+
+def list_verification_history(user: User, *, limit: int = 20) -> list[VerificationHistoryItemSchema]:
+    accesses = (
+        PhoneVerificationAccess.objects.filter(user=user, used_at__isnull=False)
+        .select_related("payment")
+        .order_by("-used_at")[:limit]
     )
+    return [
+        VerificationHistoryItemSchema(
+            id=access.id,
+            phone=access.phone,
+            certified_status=access.result_status or "UNKNOWN",
+            amount_fcfa=access.payment.amount if access.payment_id else 0,
+            consulted_at=access.used_at,
+        )
+        for access in accesses
+        if access.used_at is not None
+    ]

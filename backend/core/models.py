@@ -95,7 +95,7 @@ class Declaration(models.Model):
         ENDED = "ENDED", "Ended"
 
     class RelationType(models.TextChoices):
-        AMOUR = "AMOUR", "Amour"
+        AMOUR = "AMOUR", "Amoureuse"
         FLIRT = "FLIRT", "Flirt"
         FIANCE = "FIANCE", "Fiançailles"
         MARIAGE = "MARIAGE", "Mariage"
@@ -179,6 +179,12 @@ class PhoneVerificationAccess(models.Model):
     phone = models.CharField(max_length=15)
     payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name="verification_accesses")
     expires_at = models.DateTimeField()
+    used_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Horodatage de la consultation facturée (usage unique par paiement).",
+    )
+    result_status = models.CharField(max_length=40, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
