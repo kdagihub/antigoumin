@@ -14,8 +14,10 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
 ENV VITE_PRIMEVUE_LICENSE_KEY=$VITE_PRIMEVUE_LICENSE_KEY
 
-# Échoue tôt si la clé PrimeUI n'a pas été passée au build (sinon bandeau en prod).
-RUN test -n "$VITE_PRIMEVUE_LICENSE_KEY" || (echo "ERROR: VITE_PRIMEVUE_LICENSE_KEY manquante au build frontend." >&2 && exit 1)
+# Échoue tôt si la clé PrimeUI est absente ou mal formée (format payload.signature).
+RUN DOTS=$(printf '%s' "$VITE_PRIMEVUE_LICENSE_KEY" | tr -cd '.' | wc -c | tr -d ' ') && \
+    test -n "$VITE_PRIMEVUE_LICENSE_KEY" && test "$DOTS" -eq 1 || \
+    (echo "ERROR: VITE_PRIMEVUE_LICENSE_KEY invalide. Format attendu: payload.signature (exactement 1 point)." >&2 && exit 1)
 
 RUN npm run build
 

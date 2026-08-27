@@ -133,26 +133,29 @@ doivent toujours être fournis pour Google Sign-In et la licence PrimeVue.
 1. **Dokploy ne sert à rien pour cette variable** : le frontend est du HTML/JS statique.
    Mettre `VITE_PRIMEVUE_LICENSE_KEY` dans les variables Dokploy du service frontend **n'a aucun effet**.
 
-2. **La clé doit être sur la commande de build cloud**, entre guillemets si besoin :
+2. **La clé doit être complète** : format `payload.signature` avec **exactement 1 point**.
+   Si seule la première partie est copiée, PrimeUI affiche `license is malformed`.
+
+3. **Toujours entre guillemets simples** sur la commande de build :
    ```sh
-   VITE_PRIMEVUE_LICENSE_KEY='eyJ...votre.jwt' \
+   VITE_PRIMEVUE_LICENSE_KEY='eyJ....signature_complète' \
    docker buildx bake -f docker-compose.buildprod.yml frontend \
      --builder cloud-ciacems-ciacems-builder --push
    ```
 
-3. **Vérifier que la clé est dans le bundle** (après build local) :
+4. **Vérifier que la clé est dans le bundle** (après build local) :
    ```sh
    rg "eyJ" frontend/dist/assets/index-*.js
    ```
-   Si rien ne sort → la clé n'a pas été injectée.
+   La chaîne trouvée doit contenir **un point** entre le payload et la signature.
 
-4. **Console navigateur** (F12) : chercher `[PrimeUI]` — le message indique
+5. **Console navigateur** (F12) : chercher `[PrimeUI]` — le message indique
    `missing`, `expired`, `tampered`, etc.
 
-5. **Renouveler la clé** sur [primeui.dev](https://primeui.dev) si expirée
+6. **Renouveler la clé** sur [primeui.dev](https://primeui.dev) si expirée
    (licence Community = validité 12 mois, renouvellement gratuit).
 
-6. **Redéployer** le service frontend Dokploy après le push de la nouvelle image
+7. **Redéployer** le service frontend Dokploy après le push de la nouvelle image
    (`ciacems/agm:frontend-latest`).
 
 ## Déploiement Dokploy
