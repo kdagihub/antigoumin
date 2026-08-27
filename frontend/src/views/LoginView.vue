@@ -29,7 +29,12 @@ async function handleSubmit() {
     await auth.login({ email: email.value.trim(), password: password.value })
     const redirect =
       typeof route.query.redirect === 'string' ? route.query.redirect : postAuthPath(auth.user)
-    await router.push(auth.isFullyVerified ? redirect : postAuthPath(auth.user))
+    const phone =
+      typeof route.query.phone === 'string' ? route.query.phone : undefined
+    const destination = auth.isFullyVerified ? redirect : postAuthPath(auth.user)
+    await router.push(
+      phone ? { path: destination, query: { phone } } : destination,
+    )
   } catch (err) {
     error.value = err instanceof ApiError ? err.message : 'Connexion impossible.'
   } finally {
@@ -45,7 +50,12 @@ async function handleGoogle(idToken: string) {
     await auth.loginWithGoogle(idToken)
     const redirect =
       typeof route.query.redirect === 'string' ? route.query.redirect : postAuthPath(auth.user)
-    await router.push(auth.isFullyVerified ? redirect : postAuthPath(auth.user))
+    const phone =
+      typeof route.query.phone === 'string' ? route.query.phone : undefined
+    const destination = auth.isFullyVerified ? redirect : postAuthPath(auth.user)
+    await router.push(
+      phone ? { path: destination, query: { phone } } : destination,
+    )
   } catch (err) {
     error.value = err instanceof ApiError ? err.message : 'Connexion Google impossible.'
   } finally {
@@ -75,7 +85,12 @@ async function handleGoogle(idToken: string) {
       </div>
 
       <div class="field">
-        <label for="login-password">Mot de passe</label>
+        <div class="field__label-row">
+          <label for="login-password">Mot de passe</label>
+          <RouterLink to="/mot-de-passe-oublie" class="forgot-link">
+            Mot de passe oublié ?
+          </RouterLink>
+        </div>
         <Password
           id="login-password"
           v-model="password"
@@ -126,6 +141,24 @@ async function handleGoogle(idToken: string) {
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--color-ink);
+}
+
+.field__label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.forgot-link {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.forgot-link:hover {
+  text-decoration: underline;
 }
 
 .form-message {

@@ -196,11 +196,18 @@ onMounted(async () => {
                 :severity="auth.user.is_status_searchable ? 'success' : 'secondary'"
               />
               <Button
-                :label="
-                  auth.user.is_status_searchable
-                    ? 'Retirer la consultabilité'
-                    : 'Activer la consultabilité'
-                "
+                v-if="auth.hasActiveSubscription && auth.user.is_status_searchable"
+                label="Retirer la consultabilité"
+                severity="secondary"
+                text
+                size="small"
+                :loading="updatingVisibility"
+                :disabled="!auth.isFullyVerified"
+                @click="toggleStatusVisibility"
+              />
+              <Button
+                v-else-if="auth.hasActiveSubscription && !auth.user.is_status_searchable"
+                label="Activer la consultabilité"
                 severity="secondary"
                 text
                 size="small"
@@ -210,6 +217,10 @@ onMounted(async () => {
               />
               <span v-if="auth.hasActiveSubscription" class="profile-detail__meta">
                 En cas de retrait, votre partenaire d’Alliance sera informé.
+              </span>
+              <span v-else class="profile-detail__meta">
+                Tous les membres sont consultables. Seuls les membres Alliance VIP
+                peuvent masquer leur statut.
               </span>
             </dd>
           </div>

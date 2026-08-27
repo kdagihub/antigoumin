@@ -50,21 +50,57 @@ class SafeSearchTests(TestCase):
             expires_at=timezone.now() + timedelta(hours=1),
         )
 
-    def test_unknown_and_private_numbers_are_indistinguishable(self):
-        private_user = User.objects.create_user(
-            email="private@example.com",
+    def test_unknown_number_is_not_a_member(self):
+        self.unlock("+2250700000099")
+        result = search_by_phone(None, self.searcher, "+2250700000099")
+        self.assertEqual(result.certified_status, "NOT_A_MEMBER")
+
+    def test_vip_hidden_status_is_not_public(self):
+        from datetime import timedelta
+
+        from core.models import Alliance
+
+        vip_user = User.objects.create_user(
+            email="vip@example.com",
             password="strong-password",
             phone_number="2250700000001",
             is_status_searchable=False,
         )
-        self.assertIsNotNone(private_user)
-        for phone in ("+2250700000001", "+2250700000099"):
-            self.unlock(phone)
-            result = search_by_phone(None, self.searcher, phone)
-            self.assertEqual(
-                result.certified_status,
-                "NOT_LISTED_OR_NOT_SEARCHABLE",
-            )
+        partner = User.objects.create_user(
+            email="vip-partner@example.com",
+            password="strong-password",
+            phone_number="2250700000004",
+        )
+        declaration = Declaration.objects.create(
+            author=vip_user,
+            accepted_by=partner,
+            partner_phone=partner.phone_number,
+            partner_name="Partenaire",
+            partner_photo="declarations/vip.jpg",
+            status=Declaration.Status.VERIFIED,
+            visibility=Declaration.Visibility.PUBLIC_CERTIFIED,
+            verified_at=timezone.now(),
+        )
+        payment = Payment.objects.create(
+            user=vip_user,
+            service_type=Payment.ServiceType.ALLIANCE_VIP,
+            amount=1200,
+            reference="alliance-vip-test",
+            status=Payment.Status.SUCCESS,
+        )
+        Alliance.objects.create(
+            initiator=vip_user,
+            partner=partner,
+            declaration=declaration,
+            payment=payment,
+            status=Alliance.Status.ACTIVE,
+            initiator_consented_at=timezone.now(),
+            partner_consented_at=timezone.now(),
+            subscription_end_date=timezone.now() + timedelta(days=30),
+        )
+        self.unlock(vip_user.phone_number)
+        result = search_by_phone(None, self.searcher, vip_user.phone_number)
+        self.assertEqual(result.certified_status, "STATUS_NOT_PUBLIC")
 
     def test_public_certification_returns_only_binary_status(self):
         author = User.objects.create_user(
@@ -92,6 +128,16 @@ class SafeSearchTests(TestCase):
         self.unlock(partner.phone_number)
         result = search_by_phone(None, self.searcher, partner.phone_number)
         self.assertEqual(result.certified_status, "ENGAGED")
+
+        solo_member = User.objects.create_user(
+            email="solo@example.com",
+            password="strong-password",
+            phone_number="2250700000005",
+            is_status_searchable=True,
+        )
+        self.unlock(solo_member.phone_number)
+        available = search_by_phone(None, self.searcher, solo_member.phone_number)
+        self.assertEqual(available.certified_status, "REGISTERED_NO_DECLARATION")
         self.assertFalse(hasattr(result, "relation_count"))
         self.assertFalse(hasattr(result, "results"))
 

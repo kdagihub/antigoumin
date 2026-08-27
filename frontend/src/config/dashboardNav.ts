@@ -8,6 +8,12 @@ export type DashboardNavItem = {
 export const dashboardNavItems: DashboardNavItem[] = [
   { label: 'Accueil', shortLabel: 'Accueil', to: '/app', icon: 'pi pi-home' },
   {
+    label: 'Vérifier un numéro',
+    shortLabel: 'Vérifier',
+    to: '/app/verification',
+    icon: 'pi pi-phone',
+  },
+  {
     label: 'Mes déclarations',
     shortLabel: 'Déclarations',
     to: '/app/declarations',

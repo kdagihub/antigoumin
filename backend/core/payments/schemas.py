@@ -38,3 +38,4 @@ class CheckoutStatusSchema(Schema):
     service_type: str
     credited: bool
     message: str
+    phone: str = ""

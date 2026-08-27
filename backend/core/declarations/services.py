@@ -260,8 +260,8 @@ def end_declaration(user: User, declaration_id: int) -> VerifyResultSchema:
             visibility=Declaration.Visibility.PUBLIC_CERTIFIED,
             ended_at__isnull=True,
         ).exists()
-        if not still_public and party.is_status_searchable:
-            party.is_status_searchable = False
+        if still_public and not party.is_status_searchable:
+            party.is_status_searchable = True
             party.save(update_fields=["is_status_searchable"])
 
     return VerifyResultSchema(

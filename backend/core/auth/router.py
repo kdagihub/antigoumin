@@ -5,6 +5,8 @@ from core.auth.deps import jwt_auth, jwt_verified_auth
 from .schemas import (
     GoogleAuthSchema,
     LoginSchema,
+    PasswordResetConfirmSchema,
+    PasswordResetRequestSchema,
     PhoneOtpVerifySchema,
     PhoneUpdateSchema,
     RegisterSchema,
@@ -22,6 +24,7 @@ from .services import (
     set_status_searchability,
     user_to_schema,
 )
+from .password_reset import confirm_password_reset, request_password_reset
 from .verification import (
     confirm_email_token,
     resend_email_verification,
@@ -115,6 +118,26 @@ def register(request, payload: RegisterSchema):
 def login(request, payload: LoginSchema):
     try:
         return login_user(email=payload.email, password=payload.password)
+    except AuthServiceError as exc:
+        handle_auth_error(exc)
+
+
+@router.post("/password-reset/request", response=VerificationMessageSchema)
+def password_reset_request(request, payload: PasswordResetRequestSchema):
+    ip = request.META.get("REMOTE_ADDR", "")
+    try:
+        return request_password_reset(payload.email, ip=ip)
+    except AuthServiceError as exc:
+        handle_auth_error(exc)
+
+
+@router.post(
+    "/password-reset/{token}",
+    response=VerificationMessageSchema,
+)
+def password_reset_confirm(request, token: str, payload: PasswordResetConfirmSchema):
+    try:
+        return confirm_password_reset(token, payload.password)
     except AuthServiceError as exc:
         handle_auth_error(exc)
 

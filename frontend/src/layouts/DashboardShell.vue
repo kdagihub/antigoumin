@@ -281,7 +281,7 @@ function isActive(path: string): boolean {
   bottom: 0;
   z-index: 30;
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(7, 1fr);
   gap: 0;
   background: #fff;
   border-top: 1px solid var(--color-border);

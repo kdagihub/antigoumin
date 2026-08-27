@@ -26,6 +26,17 @@ onMounted(async () => {
     const status = await fetchCheckoutStatus(reference)
     credited.value = status.credited
     message.value = status.message
+    if (
+      status.credited &&
+      status.service_type === 'VERIFICATION' &&
+      status.phone
+    ) {
+      await router.replace({
+        path: '/app/verification',
+        query: { phone: status.phone },
+      })
+      return
+    }
   } catch (err) {
     error.value = err instanceof ApiError ? err.message : 'Statut de paiement indisponible.'
   } finally {

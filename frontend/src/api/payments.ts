@@ -19,6 +19,7 @@ export interface CheckoutStatus {
   service_type: string
   credited: boolean
   message: string
+  phone?: string
 }
 
 export function createCheckout(payload: CheckoutPayload): Promise<CheckoutResponse> {

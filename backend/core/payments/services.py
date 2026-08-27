@@ -327,19 +327,26 @@ def create_checkout(
 
 
 def get_checkout_status(user: User, reference: str):
-    local = Payment.objects.filter(reference=reference, user=user).first()
-    if local:
+    def serialize(payment: Payment) -> dict:
+        phone = ""
+        if payment.service_type == ServiceType.VERIFICATION.value:
+            phone = str((payment.metadata or {}).get("phone", ""))
         return {
-            "reference": local.reference,
-            "status": local.status,
-            "service_type": local.service_type,
-            "credited": local.status == Payment.Status.SUCCESS,
+            "reference": payment.reference,
+            "status": payment.status,
+            "service_type": payment.service_type,
+            "credited": payment.status == Payment.Status.SUCCESS,
             "message": (
                 "Paiement confirmé."
-                if local.status == Payment.Status.SUCCESS
+                if payment.status == Payment.Status.SUCCESS
                 else "Paiement non abouti."
             ),
+            "phone": phone,
         }
+
+    local = Payment.objects.filter(reference=reference, user=user).first()
+    if local:
+        return serialize(local)
 
     try:
         remote = GeniusPayClient().payments.retrieve(reference)
@@ -361,13 +368,7 @@ def get_checkout_status(user: User, reference: str):
         )
         local = Payment.objects.filter(reference=reference, user=user).first()
         if local:
-            return {
-                "reference": local.reference,
-                "status": local.status,
-                "service_type": local.service_type,
-                "credited": True,
-                "message": "Paiement confirmé.",
-            }
+            return serialize(local)
 
     return {
         "reference": remote.reference,
@@ -379,4 +380,5 @@ def get_checkout_status(user: User, reference: str):
             if remote.is_pending
             else "Paiement non abouti."
         ),
+        "phone": str((remote.metadata or {}).get("phone", "")),
     }

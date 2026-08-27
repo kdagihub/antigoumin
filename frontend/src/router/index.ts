@@ -11,6 +11,17 @@ const router = createRouter({
       component: () => import('@/views/HomeView.vue'),
     },
     {
+      path: '/mot-de-passe-oublie',
+      name: 'forgot-password',
+      component: () => import('@/views/ForgotPasswordView.vue'),
+      meta: { guest: true },
+    },
+    {
+      path: '/reinitialiser-mot-de-passe/:token',
+      name: 'reset-password',
+      component: () => import('@/views/ResetPasswordView.vue'),
+    },
+    {
       path: '/connexion',
       name: 'login',
       component: () => import('@/views/LoginView.vue'),
@@ -26,6 +37,12 @@ const router = createRouter({
       path: '/app',
       name: 'dashboard',
       component: () => import('@/views/dashboard/DashboardHomeView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/app/verification',
+      name: 'dashboard-verification',
+      component: () => import('@/views/dashboard/VerificationView.vue'),
       meta: { requiresAuth: true },
     },
     {

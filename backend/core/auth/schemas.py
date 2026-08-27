@@ -57,3 +57,11 @@ class PhoneOtpVerifySchema(Schema):
 
 class VerificationMessageSchema(Schema):
     message: str
+
+
+class PasswordResetRequestSchema(Schema):
+    email: EmailStr
+
+
+class PasswordResetConfirmSchema(Schema):
+    password: str = Field(min_length=8)

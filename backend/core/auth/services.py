@@ -9,6 +9,7 @@ from ninja.errors import HttpError
 from core.models import Alliance, Declaration, InAppNotification, User
 from core.notifications.email import notify_user_by_email
 from core.utils.phone import normalize_phone
+from core.utils.subscription import has_alliance_vip
 
 from core.utils.subscription import has_alliance_vip
 
@@ -53,22 +54,12 @@ def set_status_searchability(
     *,
     is_status_searchable: bool,
 ) -> UserSchema:
-    if is_status_searchable:
-        has_public_certification = Declaration.objects.filter(
-            (
-                models.Q(author=user)
-                | models.Q(accepted_by=user)
-                | models.Q(partner_phone=user.phone_number)
-            ),
-            status=Declaration.Status.VERIFIED,
-            visibility=Declaration.Visibility.PUBLIC_CERTIFIED,
-            ended_at__isnull=True,
-        ).exists()
-        if not has_public_certification:
-            raise AuthServiceError(
-                400,
-                "Aucune relation certifiée publique active ne permet d'activer ce statut.",
-            )
+    if not is_status_searchable and not has_alliance_vip(user):
+        raise AuthServiceError(
+            403,
+            "Seuls les membres Alliance Digitale VIP peuvent masquer "
+            "leur statut consultable.",
+        )
     visibility_was_removed = (
         user.is_status_searchable and not is_status_searchable
     )
@@ -131,23 +122,13 @@ def register_user(
     if User.objects.filter(phone_number=normalized_phone).exists():
         raise AuthServiceError(400, "Un compte utilise déjà ce numéro.")
 
-    has_public_certification = bool(
-        normalized_phone
-        and Declaration.objects.filter(
-            partner_phone=normalized_phone,
-            status=Declaration.Status.VERIFIED,
-            visibility=Declaration.Visibility.PUBLIC_CERTIFIED,
-            ended_at__isnull=True,
-        ).exists()
-    )
-
     user = User.objects.create_user(
         email=email,
         password=password,
         first_name=first_name,
         last_name=last_name,
         phone_number=normalized_phone,
-        is_status_searchable=has_public_certification,
+        is_status_searchable=True,
         auth_provider=User.AuthProvider.EMAIL,
     )
     from .verification import send_email_verification
@@ -240,6 +221,7 @@ def authenticate_google(id_token: str) -> TokenResponse:
         auth_provider=User.AuthProvider.GOOGLE,
         google_id=google_id,
         email_verified_at=timezone.now(),
+        is_status_searchable=True,
     )
     user.set_unusable_password()
     user.save()

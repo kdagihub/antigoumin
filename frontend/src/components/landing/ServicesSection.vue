@@ -1,46 +1,58 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
+
+import { useAuthStore } from '@/stores/auth'
 
 interface ServiceCard {
   id: string
   title: string
   description: string
+  ctaLabel: string
+  route: string
   icon: string
   iconBg: string
   iconColor: string
 }
 
+const router = useRouter()
+const auth = useAuthStore()
+
 const services: ServiceCard[] = [
   {
     id: 'verification',
-    title: 'Vérification du statut certifié',
+    title: 'Vérification du statut amoureux',
     description:
-      'Consultez le statut certifié d’un numéro inscrit uniquement si une certification publique a été acceptée. Résultat binaire : engagé, disponible, ou non répertorié / non consultable — sans nom, sans compteur, sans historique.',
+      'Consultez le statut certifié d’un numéro inscrit uniquement si une certification publique a été acceptée. Résultat binaire : engagé, disponible, ou non répertorié — sans nom ni historique avant paiement.',
+    ctaLabel: 'Vérifier un numéro',
+    route: '/app/verification',
     icon: 'M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z',
     iconBg: 'bg-blue-50',
     iconColor: 'text-blue-600',
   },
   {
     id: 'declaration',
-    title: 'Déclarer votre relation amoureuse',
+    title: 'Déclaration de relation',
     description:
-      'Choisissez une relation privée ou une certification publique. Votre partenaire voit clairement ce choix avant la double validation OTP. Seule la certification publique rend le statut binaire « En couple » consultable.',
+      'Choisissez une relation privée ou une certification publique. Votre partenaire voit clairement ce choix avant la double validation OTP. Seule la certification publique rend le statut « En couple » consultable.',
+    ctaLabel: 'Déclarer mon couple',
+    route: '/app/declarations',
     icon: 'M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z',
     iconBg: 'bg-rose-50',
     iconColor: 'text-[#ED147D]',
   },
   {
-    id: 'transparence',
-    title: 'Demande de Transparence (Test de fidélité)',
+    id: 'fidelity',
+    title: 'Test de fidélité',
     description:
-      'Le test de fidélité responsable d’AntiGoumin : invitez officiellement une personne à clarifier ou certifier son statut. La demande est identifiable, volontaire et sans piège : le destinataire peut accepter, refuser, ignorer ou signaler un abus. L’absence de réponse ne prouve rien.',
+      'Invitez officiellement une personne à clarifier ou certifier son statut amoureux. La demande est identifiable, volontaire et sans piège : le destinataire peut accepter, refuser, ignorer ou signaler un abus.',
+    ctaLabel: 'Lancer un test',
+    route: '/app/transparence',
     icon: 'M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5',
     iconBg: 'bg-amber-50',
     iconColor: 'text-amber-600',
   },
 ]
 
-/** Fonctionnement de l'Alliance Digitale en 3 temps */
 const allianceSteps = [
   {
     number: '01',
@@ -63,30 +75,47 @@ const allianceBenefits = [
   'Badge d’Alliance certifié, affichable uniquement avec l’accord des deux parties',
   'Notification neutre si l’Alliance prend fin',
   'Chacun peut retirer son consentement et supprimer son compte à tout moment',
-  '5 vérifications, 1 déclaration et 1 Demande de Transparence incluses chaque mois',
+  '5 vérifications, 1 déclaration et 1 test de fidélité inclus chaque mois',
   'Présence optionnelle parmi les couples certifiés',
   'Support prioritaire et historique de vos actions',
 ]
+
+async function handleServiceCta(route: string) {
+  if (!auth.isAuthenticated) {
+    await router.push({
+      name: 'login',
+      query: { redirect: route },
+    })
+    return
+  }
+
+  if (!auth.isFullyVerified) {
+    await router.push('/app/profil')
+    return
+  }
+
+  await router.push(route)
+}
 </script>
 
 <template>
-  <section id="services" class="scroll-mt-24 bg-white px-5 py-20 md:px-8 lg:px-10">
+  <section id="services" class="scroll-mt-24 bg-slate-50 px-5 py-20 md:px-8 lg:px-10">
     <div class="mx-auto max-w-7xl">
       <div class="text-center">
         <h2 class="font-display text-3xl font-extrabold text-blue-950 md:text-4xl">
-          Une protection complète pour votre cœur
+          Nos Services
         </h2>
         <p class="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
           Trois piliers pour sécuriser votre relation, et une Alliance pour la sceller.
         </p>
       </div>
 
-      <div class="mt-14 grid grid-cols-1 gap-8 md:grid-cols-3">
+      <div class="mt-14 grid grid-cols-1 items-stretch gap-8 md:grid-cols-3">
         <article
           v-for="service in services"
           :id="`service-${service.id}`"
           :key="service.id"
-          class="scroll-mt-28 flex flex-col rounded-2xl border border-slate-200 bg-white p-8 shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+          class="scroll-mt-28 flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-8 shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
         >
           <div
             class="flex h-16 w-16 items-center justify-center rounded-full"
@@ -112,6 +141,14 @@ const allianceBenefits = [
           <p class="mt-2 flex-1 text-sm leading-relaxed text-slate-600">
             {{ service.description }}
           </p>
+
+          <button
+            type="button"
+            class="mt-auto w-full rounded-lg border-2 border-[#ED147D] px-4 py-2 font-semibold text-[#ED147D] transition-colors hover:bg-[#ED147D] hover:text-white"
+            @click="handleServiceCta(service.route)"
+          >
+            {{ service.ctaLabel }}
+          </button>
         </article>
       </div>
 
@@ -121,7 +158,6 @@ const allianceBenefits = [
         class="mt-8 scroll-mt-28 overflow-hidden rounded-2xl border-2 border-[#ED147D]/30 bg-blue-950 shadow-xl transition-all duration-300 hover:shadow-2xl"
       >
         <div class="grid gap-10 p-8 lg:grid-cols-[1.15fr_1fr] lg:gap-14 lg:p-12">
-          <!-- Explication -->
           <div>
             <span
               class="inline-flex items-center gap-2 rounded-full bg-[#ED147D]/15 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-[#ED147D]"
@@ -140,7 +176,6 @@ const allianceBenefits = [
               que l’Alliance a pris fin.
             </p>
 
-            <!-- Fonctionnement en 3 temps -->
             <div class="mt-8 space-y-5">
               <div v-for="step in allianceSteps" :key="step.number" class="flex gap-4">
                 <span
@@ -171,7 +206,6 @@ const allianceBenefits = [
             </RouterLink>
           </div>
 
-          <!-- Visuel alliances + avantages -->
           <div class="flex flex-col">
             <div
               class="flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 py-8 backdrop-blur-sm"
