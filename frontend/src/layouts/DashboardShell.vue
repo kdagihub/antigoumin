@@ -3,7 +3,8 @@ import { computed } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 
 import BrandMark from '@/components/BrandMark.vue'
-import { dashboardNavItems } from '@/config/dashboardNav'
+import DashboardUserMenu from '@/components/DashboardUserMenu.vue'
+import { dashboardAccountLinks, dashboardModuleNavItems } from '@/config/dashboardNav'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
@@ -43,7 +44,20 @@ function isActive(path: string): boolean {
 
       <nav class="dashboard__nav">
         <RouterLink
-          v-for="item in dashboardNavItems"
+          v-for="item in dashboardModuleNavItems"
+          :key="item.to"
+          :to="item.to"
+          class="dashboard__nav-link"
+          :class="{ 'dashboard__nav-link--active': isActive(item.to) }"
+        >
+          <i :class="item.icon" aria-hidden="true" />
+          <span>{{ item.label }}</span>
+        </RouterLink>
+
+        <div class="dashboard__nav-divider" aria-hidden="true" />
+
+        <RouterLink
+          v-for="item in dashboardAccountLinks"
           :key="item.to"
           :to="item.to"
           class="dashboard__nav-link"
@@ -68,14 +82,18 @@ function isActive(path: string): boolean {
           <BrandMark size="sm" />
           <span class="font-display">AntiGoumin</span>
         </RouterLink>
-        <RouterLink
-          v-if="auth.user && !auth.isFullyVerified"
-          to="/app/profil"
-          class="dashboard__verify-chip"
-        >
-          <i class="pi pi-exclamation-circle" aria-hidden="true" />
-          Vérifier le compte
-        </RouterLink>
+
+        <div class="dashboard__topbar-actions">
+          <RouterLink
+            v-if="auth.user && !auth.isFullyVerified"
+            to="/app/profil"
+            class="dashboard__verify-chip"
+          >
+            <i class="pi pi-exclamation-circle" aria-hidden="true" />
+            <span class="dashboard__verify-chip-text">Vérifier le compte</span>
+          </RouterLink>
+          <DashboardUserMenu compact />
+        </div>
       </header>
 
       <main class="dashboard__main">
@@ -85,7 +103,7 @@ function isActive(path: string): boolean {
 
     <nav class="dashboard__bottom-nav" aria-label="Navigation mobile">
       <RouterLink
-        v-for="item in dashboardNavItems"
+        v-for="item in dashboardModuleNavItems"
         :key="`mobile-${item.to}`"
         :to="item.to"
         class="dashboard__bottom-link"
@@ -201,6 +219,12 @@ function isActive(path: string): boolean {
   color: #be123c;
 }
 
+.dashboard__nav-divider {
+  height: 1px;
+  margin: 0.75rem 0.5rem;
+  background: var(--color-border);
+}
+
 .dashboard__sidebar-footer {
   margin-top: 1rem;
   padding-top: 1rem;
@@ -250,6 +274,14 @@ function isActive(path: string): boolean {
   color: var(--color-ink);
   font-weight: 800;
   font-size: 1rem;
+  min-width: 0;
+}
+
+.dashboard__topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .dashboard__verify-chip {
@@ -264,6 +296,13 @@ function isActive(path: string): boolean {
   font-size: 0.75rem;
   font-weight: 700;
   text-decoration: none;
+}
+
+.dashboard__verify-chip-text {
+  max-width: 7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dashboard__main {
@@ -281,7 +320,7 @@ function isActive(path: string): boolean {
   bottom: 0;
   z-index: 30;
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 0;
   background: #fff;
   border-top: 1px solid var(--color-border);
@@ -309,6 +348,12 @@ function isActive(path: string): boolean {
 
 .dashboard__bottom-link--active {
   color: var(--color-primary);
+}
+
+@media (max-width: 380px) {
+  .dashboard__verify-chip-text {
+    display: none;
+  }
 }
 
 @media (min-width: 1024px) {

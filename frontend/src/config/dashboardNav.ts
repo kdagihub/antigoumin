@@ -5,7 +5,7 @@ export type DashboardNavItem = {
   shortLabel?: string
 }
 
-export const dashboardNavItems: DashboardNavItem[] = [
+export const dashboardModuleNavItems: DashboardNavItem[] = [
   { label: 'Accueil', shortLabel: 'Accueil', to: '/app', icon: 'pi pi-home' },
   {
     label: 'Vérifier un numéro',
@@ -31,11 +31,9 @@ export const dashboardNavItems: DashboardNavItem[] = [
     to: '/app/alliances',
     icon: 'pi pi-users',
   },
-  { label: 'Mon profil', shortLabel: 'Profil', to: '/app/profil', icon: 'pi pi-user' },
-  {
-    label: 'Abonnement',
-    shortLabel: 'Abonnement',
-    to: '/app/abonnement',
-    icon: 'pi pi-credit-card',
-  },
 ]
+
+export const dashboardAccountLinks = [
+  { label: 'Profil', to: '/app/profil', icon: 'pi pi-user' },
+  { label: 'Abonnements', to: '/app/abonnement', icon: 'pi pi-credit-card' },
+] as const

@@ -28,7 +28,7 @@ docker login
 ```sh
 VITE_API_BASE_URL=https://api.antigoumin.live \
 VITE_GOOGLE_CLIENT_ID=819138748962-i19mae2hh44dqbeg7d4ds9bt1m6bm9jm.apps.googleusercontent.com \
-VITE_PRIMEVUE_LICENSE_KEY=eyJpZCI6IjdiYWJiN2JiLWRjMjEtNGExOC05NjNiLTI2YTNmM2YzNTM4YSIsInByb2R1Y3QiOiJwcmltZXVpIiwidGllciI6ImNvbW11bml0eSIsInR5cGUiOiJkZXYiLCJpYXQiOjE3ODcyODcxNjEsImV4cCI6MTgxODgyMzE2MX0 \
+VITE_PRIMEVUE_LICENSE_KEY=eyJpZCI6IjdiYWJiN2JiLWRjMjEtNGExOC05NjNiLTI2YTNmM2YzNTM4YSIsInByb2R1Y3QiOiJwcmltZXVpIiwidGllciI6ImNvbW11bml0eSIsInR5cGUiOiJkZXYiLCJpYXQiOjE3ODcyODcxNjEsImV4cCI6MTgxODgyMzE2MX0.mAuDJ7zh-U0HY6fd2taauQZC1J_2YLDjKfgPlHhTNu-S9vKo56GdW27cpkd1ybF99y-wIhrNVW13sZq6DdojCw \
 docker buildx bake -f docker-compose.buildprod.yml \
   --builder cloud-ciacems-ciacems-builder --push
 ```
