@@ -6,7 +6,7 @@ from ninja import Schema
 
 class TransparencyRequestCreateSchema(Schema):
     target_phone: str
-    payment_id: int
+    payment_id: int | None = None
 
 
 class TransparencyRequestSchema(Schema):
@@ -15,6 +15,22 @@ class TransparencyRequestSchema(Schema):
     status: str
     expires_at: datetime
     respond_url: str
+
+
+class TransparencyRequestListItemSchema(Schema):
+    id: int
+    target_phone: str
+    status: str
+    declared_status: str | None
+    declared_partner_name: str | None
+    expires_at: datetime
+    responded_at: datetime | None
+    created_at: datetime
+
+
+class TransparencyRequestListSchema(Schema):
+    items: list[TransparencyRequestListItemSchema]
+    count: int
 
 
 class TransparencyRequestPreviewSchema(Schema):

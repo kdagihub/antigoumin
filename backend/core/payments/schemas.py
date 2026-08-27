@@ -39,3 +39,9 @@ class CheckoutStatusSchema(Schema):
     credited: bool
     message: str
     phone: str = ""
+    payment_id: int | None = None
+
+
+class UnusedPaymentSchema(Schema):
+    payment_id: int | None = None
+    service_type: str

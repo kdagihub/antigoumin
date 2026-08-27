@@ -4,6 +4,7 @@ from core.auth.deps import jwt_verified_auth
 
 from .schemas import (
     TransparencyRequestCreateSchema,
+    TransparencyRequestListSchema,
     TransparencyRequestPreviewSchema,
     TransparencyRequestRespondSchema,
     TransparencyRequestResultSchema,
@@ -13,11 +14,18 @@ from .services import (
     TransparencyRequestServiceError,
     create_transparency_request,
     handle_transparency_request_error,
+    list_transparency_requests,
     preview_transparency_request,
     respond_to_transparency_request,
 )
 
 router = Router(tags=["Demandes de Transparence"])
+
+
+@router.get("/", response=TransparencyRequestListSchema, auth=jwt_verified_auth)
+def get_requests(request):
+    items = list_transparency_requests(request.auth)
+    return {"items": items, "count": len(items)}
 
 
 @router.post("/", response=TransparencyRequestSchema, auth=jwt_verified_auth)

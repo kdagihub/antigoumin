@@ -37,6 +37,20 @@ onMounted(async () => {
       })
       return
     }
+    if (status.credited && status.service_type === 'DECLARATION') {
+      await router.replace({
+        path: '/app/declarations',
+        query: { reference },
+      })
+      return
+    }
+    if (status.credited && status.service_type === 'TRANSPARENCY_REQUEST') {
+      await router.replace({
+        path: '/app/transparence',
+        query: { reference },
+      })
+      return
+    }
   } catch (err) {
     error.value = err instanceof ApiError ? err.message : 'Statut de paiement indisponible.'
   } finally {

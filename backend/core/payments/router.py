@@ -8,11 +8,13 @@ from .schemas import (
     CheckoutStatusSchema,
     PaymentWebhookResponseSchema,
     PaymentWebhookSchema,
+    UnusedPaymentSchema,
 )
 from .services import (
     PaymentServiceError,
     create_checkout,
     get_checkout_status,
+    get_unused_payment_for_user,
     handle_payment_error,
     process_payment_webhook,
     verify_webhook_secret,
@@ -42,6 +44,14 @@ def start_checkout(request, payload: CheckoutCreateSchema):
 def checkout_status(request, reference: str):
     try:
         return get_checkout_status(request.auth, reference)
+    except PaymentServiceError as exc:
+        handle_payment_error(exc)
+
+
+@router.get("/unused/", response=UnusedPaymentSchema, auth=jwt_verified_auth)
+def unused_payment(request, service_type: str):
+    try:
+        return get_unused_payment_for_user(request.auth, service_type)
     except PaymentServiceError as exc:
         handle_payment_error(exc)
 

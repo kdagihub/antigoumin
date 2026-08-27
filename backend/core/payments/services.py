@@ -326,11 +326,37 @@ def create_checkout(
     }
 
 
+def get_unused_payment_for_user(user: User, service_type: str):
+    try:
+        service = ServiceType(service_type)
+    except ValueError as exc:
+        raise PaymentServiceError(400, "Type de service invalide.") from exc
+    payment = (
+        Payment.objects.filter(
+            user=user,
+            service_type=service.value,
+            status=Payment.Status.SUCCESS,
+            consumed=False,
+        )
+        .order_by("-created_at")
+        .first()
+    )
+    return {
+        "payment_id": payment.id if payment else None,
+        "service_type": service.value,
+    }
+
+
 def get_checkout_status(user: User, reference: str):
     def serialize(payment: Payment) -> dict:
         phone = ""
         if payment.service_type == ServiceType.VERIFICATION.value:
             phone = str((payment.metadata or {}).get("phone", ""))
+        payment_id = (
+            payment.id
+            if payment.status == Payment.Status.SUCCESS and not payment.consumed
+            else None
+        )
         return {
             "reference": payment.reference,
             "status": payment.status,
@@ -342,6 +368,7 @@ def get_checkout_status(user: User, reference: str):
                 else "Paiement non abouti."
             ),
             "phone": phone,
+            "payment_id": payment_id,
         }
 
     local = Payment.objects.filter(reference=reference, user=user).first()
@@ -381,4 +408,5 @@ def get_checkout_status(user: User, reference: str):
             else "Paiement non abouti."
         ),
         "phone": str((remote.metadata or {}).get("phone", "")),
+        "payment_id": None,
     }

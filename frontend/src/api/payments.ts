@@ -20,6 +20,12 @@ export interface CheckoutStatus {
   credited: boolean
   message: string
   phone?: string
+  payment_id?: number | null
+}
+
+export interface UnusedPayment {
+  payment_id: number | null
+  service_type: string
 }
 
 export function createCheckout(payload: CheckoutPayload): Promise<CheckoutResponse> {
@@ -31,4 +37,11 @@ export function createCheckout(payload: CheckoutPayload): Promise<CheckoutRespon
 
 export function fetchCheckoutStatus(reference: string): Promise<CheckoutStatus> {
   return apiRequest(`/payments/status/${reference}`)
+}
+
+export function fetchUnusedPayment(
+  serviceType: CheckoutPayload['service_type'],
+): Promise<UnusedPayment> {
+  const params = new URLSearchParams({ service_type: serviceType })
+  return apiRequest(`/payments/unused/?${params.toString()}`)
 }

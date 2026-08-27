@@ -14,6 +14,7 @@ from core.utils.phone import normalize_phone
 from core.utils.subscription import get_unused_payment
 
 from .schemas import (
+    TransparencyRequestListItemSchema,
     TransparencyRequestPreviewSchema,
     TransparencyRequestResultSchema,
     TransparencyRequestSchema,
@@ -31,19 +32,36 @@ def handle_transparency_request_error(exc: TransparencyRequestServiceError):
     raise HttpError(exc.status_code, exc.message)
 
 
+def list_transparency_requests(user: User) -> list[TransparencyRequestListItemSchema]:
+    requests = TransparencyRequest.objects.filter(requester=user).order_by("-created_at")
+    return [
+        TransparencyRequestListItemSchema(
+            id=item.id,
+            target_phone=item.target_phone,
+            status=item.status,
+            declared_status=item.declared_status or None,
+            declared_partner_name=item.declared_partner_name or None,
+            expires_at=item.expires_at,
+            responded_at=item.responded_at,
+            created_at=item.created_at,
+        )
+        for item in requests
+    ]
+
+
 def create_transparency_request(
     request,
     user: User,
     *,
     target_phone: str,
-    payment_id: int,
+    payment_id: int | None = None,
 ) -> TransparencyRequestSchema:
     payment = get_unused_payment(
         user,
         ServiceType.TRANSPARENCY_REQUEST,
         payment_id=payment_id,
     )
-    if payment is None:
+    if payment is None and not settings.DEBUG:
         raise TransparencyRequestServiceError(
             402,
             "Paiement Demande de Transparence requis (550 FCFA).",
@@ -97,12 +115,13 @@ def create_transparency_request(
             token=token,
             expires_at=expires_at,
         )
-        payment.consumed = True
-        payment.metadata = {
-            **payment.metadata,
-            "transparency_request_id": transparency_request.id,
-        }
-        payment.save(update_fields=["consumed", "metadata"])
+        if payment:
+            payment.consumed = True
+            payment.metadata = {
+                **payment.metadata,
+                "transparency_request_id": transparency_request.id,
+            }
+            payment.save(update_fields=["consumed", "metadata"])
 
     requester_name = user.full_name or user.email
     send_transparency_request_sms_async(
