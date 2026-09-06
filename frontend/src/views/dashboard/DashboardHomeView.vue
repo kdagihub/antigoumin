@@ -5,6 +5,13 @@ import Tag from 'primevue/tag'
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 
+import { fetchDashboardSummary, type DashboardNextAction } from '@/api/dashboard'
+import {
+  dashboardHomeCopy,
+  dashboardStatCopy,
+  dashboardStatOrder,
+  type DashboardStatKey,
+} from '@/content/dashboardHomeCopy'
 import DashboardShell from '@/layouts/DashboardShell.vue'
 import { dashboardQuickActions } from '@/config/dashboardNav'
 import { useAuthStore } from '@/stores/auth'
@@ -14,18 +21,20 @@ const route = useRoute()
 const router = useRouter()
 
 const showWelcome = computed(() => route.query.welcome === '1')
+const loading = ref(true)
+const nextAction = ref<DashboardNextAction | null>(null)
 
-const stats = ref([
-  { label: 'Relations déclarées', value: 0, icon: 'pi pi-heart', tone: 'rose' },
-  { label: 'Recherches effectuées', value: 0, icon: 'pi pi-search', tone: 'sky' },
-  { label: 'Alliances actives', value: 0, icon: 'pi pi-users', tone: 'violet' },
-  { label: 'Tests de fidélité', value: 0, icon: 'pi pi-shield', tone: 'teal' },
-])
+const stats = ref(
+  dashboardStatOrder.map((key) => ({
+    key,
+    label: dashboardStatCopy[key].label,
+    value: 0,
+    icon: dashboardStatCopy[key].icon,
+    tone: dashboardStatCopy[key].tone,
+  })),
+)
 
-const activity = ref([
-  { time: 'À l’instant', text: 'Espace prêt — vos services apparaîtront ici en temps réel.' },
-  { time: 'Bientôt', text: 'Déclarations, alliances et recherches seront listées automatiquement.' },
-])
+const activity = ref<{ id: string; time: string; text: string; route: string }[]>([])
 
 const greeting = computed(() => {
   const hour = new Date().getHours()
@@ -40,10 +49,57 @@ const displayName = computed(() => {
   return full || 'Membre'
 })
 
-onMounted(() => {
-  if (showWelcome.value) {
-    router.replace({ path: '/app', query: {} })
+function formatActivityTime(iso: string): string {
+  const date = new Date(iso)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60_000)
+  if (diffMins < 1) return 'À l’instant'
+  if (diffMins < 60) return `Il y a ${diffMins} min`
+  const diffHours = Math.floor(diffMins / 60)
+  if (diffHours < 24) return `Il y a ${diffHours} h`
+  const diffDays = Math.floor(diffHours / 24)
+  if (diffDays < 7) return `Il y a ${diffDays} j`
+  return date.toLocaleDateString('fr-CI', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+async function loadDashboardSummary() {
+  loading.value = true
+  try {
+    const summary = await fetchDashboardSummary()
+    const valueByKey = Object.fromEntries(summary.stats.map((item) => [item.key, item.value]))
+    stats.value = dashboardStatOrder.map((key: DashboardStatKey) => ({
+      key,
+      label: dashboardStatCopy[key].label,
+      value: valueByKey[key] ?? 0,
+      icon: dashboardStatCopy[key].icon,
+      tone: dashboardStatCopy[key].tone,
+    }))
+    activity.value = summary.activity.map((item) => ({
+      id: `${item.type}-${item.occurred_at}`,
+      time: formatActivityTime(item.occurred_at),
+      text: item.label,
+      route: item.route,
+    }))
+    nextAction.value = summary.next_action
+  } catch {
+    activity.value = []
+    nextAction.value = null
+  } finally {
+    loading.value = false
   }
+}
+
+onMounted(async () => {
+  if (showWelcome.value) {
+    await router.replace({ path: '/app', query: {} })
+  }
+  await loadDashboardSummary()
 })
 </script>
 
@@ -112,13 +168,31 @@ onMounted(() => {
       </RouterLink>
     </section>
 
+    <section v-if="nextAction" class="dashboard-home__cta dashboard-home__cta--next">
+      <Card>
+        <template #content>
+          <h2 class="dashboard-home__section-title font-display">
+            {{ dashboardHomeCopy.nextStepTitle }}
+          </h2>
+          <p class="dashboard-home__next-title">{{ nextAction.title }}</p>
+          <p class="dashboard-home__next-body">{{ nextAction.description }}</p>
+          <RouterLink :to="nextAction.route" class="dashboard-home__cta-link">
+            Continuer
+            <i class="pi pi-arrow-right" aria-hidden="true" />
+          </RouterLink>
+        </template>
+      </Card>
+    </section>
+
     <section class="dashboard-home__stats" aria-label="Statistiques">
-      <Card v-for="stat in stats" :key="stat.label" class="dashboard-home__stat">
+      <Card v-for="stat in stats" :key="stat.key" class="dashboard-home__stat">
         <template #content>
           <div class="dashboard-home__stat-inner" :data-tone="stat.tone">
             <i :class="stat.icon" aria-hidden="true" />
             <div>
-              <p class="dashboard-home__stat-value">{{ stat.value }}</p>
+              <p class="dashboard-home__stat-value">
+                {{ loading ? '—' : stat.value }}
+              </p>
               <p class="dashboard-home__stat-label">{{ stat.label }}</p>
             </div>
           </div>
@@ -127,31 +201,25 @@ onMounted(() => {
     </section>
 
     <section class="dashboard-home__activity">
-      <h2 class="dashboard-home__section-title font-display">Activité récente</h2>
+      <h2 class="dashboard-home__section-title font-display">
+        {{ dashboardHomeCopy.activityTitle }}
+      </h2>
       <Card>
         <template #content>
-          <ul class="dashboard-home__timeline">
-            <li v-for="item in activity" :key="item.time">
+          <p v-if="loading" class="dashboard-home__activity-empty">
+            {{ dashboardHomeCopy.loading }}
+          </p>
+          <p v-else-if="!activity.length" class="dashboard-home__activity-empty">
+            {{ dashboardHomeCopy.activityEmpty }}
+          </p>
+          <ul v-else class="dashboard-home__timeline">
+            <li v-for="item in activity" :key="item.id">
               <span class="dashboard-home__time">{{ item.time }}</span>
-              <span>{{ item.text }}</span>
+              <RouterLink :to="item.route" class="dashboard-home__activity-link">
+                {{ item.text }}
+              </RouterLink>
             </li>
           </ul>
-        </template>
-      </Card>
-    </section>
-
-    <section v-if="!auth.isFullyVerified" class="dashboard-home__cta">
-      <Card>
-        <template #content>
-          <h2 class="dashboard-home__section-title font-display">Prochaine étape</h2>
-          <p>
-            Vérifiez votre email ou votre téléphone pour débloquer les déclarations,
-            les recherches et les alliances.
-          </p>
-          <RouterLink to="/app/profil" class="dashboard-home__cta-link">
-            Aller à Mon profil
-            <i class="pi pi-arrow-right" aria-hidden="true" />
-          </RouterLink>
         </template>
       </Card>
     </section>
@@ -501,13 +569,43 @@ onMounted(() => {
   letter-spacing: 0.03em;
 }
 
-.dashboard-home__cta {
-  margin-top: 1.5rem;
+.dashboard-home__activity-link {
+  color: var(--color-ink);
+  text-decoration: none;
+  font-weight: 600;
+  line-height: 1.45;
 }
 
-.dashboard-home__cta p {
+.dashboard-home__activity-link:hover {
+  color: var(--color-primary);
+}
+
+.dashboard-home__activity-empty {
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.55;
+}
+
+.dashboard-home__cta {
+  margin-bottom: 1.25rem;
+}
+
+.dashboard-home__cta--next :deep(.p-card) {
+  border: 1px solid rgb(237 20 125 / 0.2);
+  background: linear-gradient(135deg, #fff1f5 0%, #ffffff 100%);
+}
+
+.dashboard-home__next-title {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--color-ink);
+}
+
+.dashboard-home__next-body {
   margin: 0 0 1rem;
   color: var(--color-muted);
+  line-height: 1.55;
 }
 
 .dashboard-home__cta-link {

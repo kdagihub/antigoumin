@@ -6,6 +6,7 @@ from core.auth.router import router as auth_router
 from core.auth.schemas import UserSchema
 from core.catalog.router import router as catalog_router
 from core.contact.router import router as contact_router
+from core.dashboard.router import router as dashboard_router
 from core.declarations.router import router as declarations_router
 from core.notifications.router import router as notifications_router
 from core.fidelity_tests.router import router as transparency_requests_router
@@ -23,6 +24,7 @@ api.add_router("/auth", auth_router)
 api.add_router("/alliances", alliances_router)
 api.add_router("/catalog", catalog_router)
 api.add_router("/contact", contact_router)
+api.add_router("/dashboard", dashboard_router)
 api.add_router("/declarations", declarations_router)
 api.add_router("/notifications", notifications_router)
 api.add_router("/search", search_router)
