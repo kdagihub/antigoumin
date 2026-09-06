@@ -133,7 +133,7 @@ onMounted(async () => {
       />
     </header>
 
-    <section class="dashboard-home__actions" aria-label="Actions rapides">
+    <section class="dashboard-home__actions" aria-label="Actions rapides" data-tutorial="dashboard-quick-actions">
       <RouterLink
         v-for="action in dashboardQuickActions"
         :key="action.to"
@@ -168,7 +168,7 @@ onMounted(async () => {
       </RouterLink>
     </section>
 
-    <section v-if="nextAction" class="dashboard-home__cta dashboard-home__cta--next">
+    <section v-if="nextAction" class="dashboard-home__cta dashboard-home__cta--next" data-tutorial="dashboard-next-action">
       <Card>
         <template #content>
           <h2 class="dashboard-home__section-title font-display">
@@ -184,7 +184,7 @@ onMounted(async () => {
       </Card>
     </section>
 
-    <section class="dashboard-home__stats" aria-label="Statistiques">
+    <section class="dashboard-home__stats" aria-label="Statistiques" data-tutorial="dashboard-stats">
       <Card v-for="stat in stats" :key="stat.key" class="dashboard-home__stat">
         <template #content>
           <div class="dashboard-home__stat-inner" :data-tone="stat.tone">
@@ -200,7 +200,7 @@ onMounted(async () => {
       </Card>
     </section>
 
-    <section class="dashboard-home__activity">
+    <section class="dashboard-home__activity" data-tutorial="dashboard-activity">
       <h2 class="dashboard-home__section-title font-display">
         {{ dashboardHomeCopy.activityTitle }}
       </h2>

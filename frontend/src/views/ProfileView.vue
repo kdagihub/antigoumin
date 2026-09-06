@@ -15,6 +15,7 @@ import {
 } from '@/api/notifications'
 import VerificationBanner from '@/components/VerificationBanner.vue'
 import PremiumVisibilityControl from '@/components/PremiumVisibilityControl.vue'
+import { resetTutorial } from '@/composables/useOnboarding'
 import DashboardShell from '@/layouts/DashboardShell.vue'
 import { useAuthStore } from '@/stores/auth'
 
@@ -75,6 +76,12 @@ const alliancePartner = computed(() => {
 function logout() {
   auth.logout()
   router.push('/')
+}
+
+function replayTutorial() {
+  if (!auth.user) return
+  resetTutorial(auth.user.id)
+  void router.push('/app')
 }
 
 async function dismissNotification(notificationId: number) {
@@ -179,6 +186,14 @@ onMounted(async () => {
         <Divider />
 
         <div class="profile-actions">
+          <Button
+            label="Revoir le tutoriel"
+            icon="pi pi-compass"
+            severity="secondary"
+            text
+            class="w-full"
+            @click="replayTutorial"
+          />
           <Button
             label="Se déconnecter"
             icon="pi pi-sign-out"

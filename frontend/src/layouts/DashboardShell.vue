@@ -1,16 +1,27 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 
 import BrandMark from '@/components/BrandMark.vue'
 import DashboardUserMenu from '@/components/DashboardUserMenu.vue'
 import AllianceRingsIcon from '@/components/icons/AllianceRingsIcon.vue'
+import DashboardTutorial from '@/components/onboarding/DashboardTutorial.vue'
+import OnboardingWizard from '@/components/onboarding/OnboardingWizard.vue'
 import PwaInstallButton from '@/components/PwaInstallButton.vue'
+import {
+  markTutorialCompleted,
+  markWizardCompleted,
+  shouldShowTutorial,
+  shouldShowWizard,
+} from '@/composables/useOnboarding'
 import { dashboardAccountLinks, dashboardModuleNavItems } from '@/config/dashboardNav'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
 const route = useRoute()
+
+const showWizard = ref(false)
+const showTutorial = ref(false)
 
 const displayName = computed(() => {
   if (!auth.user) return ''
@@ -24,6 +35,43 @@ function isActive(path: string): boolean {
   }
   return route.path.startsWith(path)
 }
+
+function openTutorialIfNeeded() {
+  if (route.path !== '/app' || !auth.user) return
+  if (!shouldShowTutorial(auth.user.id)) return
+  window.setTimeout(() => {
+    if (route.path === '/app') {
+      showTutorial.value = true
+    }
+  }, 450)
+}
+
+function onWizardFinished() {
+  if (!auth.user) return
+  markWizardCompleted(auth.user.id)
+  openTutorialIfNeeded()
+}
+
+function onTutorialFinished() {
+  if (!auth.user) return
+  markTutorialCompleted(auth.user.id)
+}
+
+onMounted(() => {
+  if (auth.user && shouldShowWizard(auth.user.id)) {
+    showWizard.value = true
+    return
+  }
+  openTutorialIfNeeded()
+})
+
+watch(
+  () => [route.path, auth.user?.id] as const,
+  () => {
+    if (showWizard.value) return
+    openTutorialIfNeeded()
+  },
+)
 </script>
 
 <template>
@@ -44,7 +92,7 @@ function isActive(path: string): boolean {
         </div>
       </div>
 
-      <nav class="dashboard__nav">
+      <nav class="dashboard__nav" data-tutorial="dashboard-nav-desktop">
         <RouterLink
           v-for="item in dashboardModuleNavItems"
           :key="item.to"
@@ -71,6 +119,7 @@ function isActive(path: string): boolean {
             'dashboard__nav-link--active': isActive(item.to),
             'dashboard__nav-link--premium': item.to === '/app/abonnement',
           }"
+          :data-tutorial="item.to === '/app/abonnement' ? 'dashboard-premium-desktop' : undefined"
         >
           <i :class="item.icon" aria-hidden="true" />
           <span>{{ item.label }}</span>
@@ -98,6 +147,7 @@ function isActive(path: string): boolean {
             to="/app/abonnement"
             class="dashboard__premium-chip"
             :class="{ 'dashboard__premium-chip--active': auth.hasActiveSubscription }"
+            data-tutorial="dashboard-premium-mobile"
           >
             <i class="pi pi-star-fill" aria-hidden="true" />
             <span class="dashboard__premium-chip-text">
@@ -121,7 +171,7 @@ function isActive(path: string): boolean {
       </main>
     </div>
 
-    <nav class="dashboard__bottom-nav" aria-label="Navigation mobile">
+    <nav class="dashboard__bottom-nav" aria-label="Navigation mobile" data-tutorial="dashboard-nav-mobile">
       <template v-for="item in dashboardModuleNavItems" :key="`mobile-${item.to}`">
         <RouterLink
           v-if="item.mobileFab"
@@ -150,6 +200,17 @@ function isActive(path: string): boolean {
         </RouterLink>
       </template>
     </nav>
+
+    <OnboardingWizard
+      v-model:visible="showWizard"
+      @complete="onWizardFinished"
+      @skip="onWizardFinished"
+    />
+    <DashboardTutorial
+      v-model:visible="showTutorial"
+      @complete="onTutorialFinished"
+      @skip="onTutorialFinished"
+    />
   </div>
 </template>
 
