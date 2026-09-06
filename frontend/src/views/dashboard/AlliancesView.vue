@@ -6,7 +6,7 @@ import Select from 'primevue/select'
 import Tag from 'primevue/tag'
 import ToggleSwitch from 'primevue/toggleswitch'
 import { computed, onMounted, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 
 import { redirectToGeniusPay } from '@/api/checkout'
 import { ApiError } from '@/api/client'
@@ -25,10 +25,13 @@ import {
   type InAppNotification,
 } from '@/api/notifications'
 import DashboardShell from '@/layouts/DashboardShell.vue'
+import PremiumVisibilityControl from '@/components/PremiumVisibilityControl.vue'
+import { alliancesPageCopy } from '@/content/alliancesCopy'
 import { useAuthStore } from '@/stores/auth'
 import { downloadAlliancePdf } from '@/utils/moduleReceipts'
 
 const auth = useAuthStore()
+const router = useRouter()
 
 const alliances = ref<Alliance[]>([])
 const eligibleDeclarations = ref<EligibleDeclaration[]>([])
@@ -48,6 +51,9 @@ const dismissingAlertId = ref<number | null>(null)
 const allianceAlertTypes = new Set([
   'PARTNER_DECLARED_BY_OTHER',
   'PARTNER_VISIBILITY_DISABLED',
+  'SUBSCRIPTION_EXPIRING',
+  'SUBSCRIPTION_EXPIRED',
+  'SUBSCRIPTION_RENEWED',
 ])
 
 const allianceAlerts = computed(() =>
@@ -207,6 +213,10 @@ async function respondInvitation(alliance: Alliance, accept: boolean) {
 }
 
 async function toggleBadge(alliance: Alliance, visible: boolean) {
+  if (!auth.hasActiveSubscription) {
+    await router.push('/app/abonnement')
+    return
+  }
   updatingBadgeId.value = alliance.id
   error.value = ''
   try {
@@ -247,20 +257,24 @@ async function terminateAlliance(alliance: Alliance) {
 onMounted(async () => {
   await Promise.all([loadAlliancesData(), loadAlerts()])
 })
+function onBadgeLockedClick() {
+  router.push('/app/abonnement')
+}
 </script>
 
 <template>
   <DashboardShell>
-    <header class="alliances-page__header">
-      <div>
-        <p class="alliances-page__eyebrow">Confiance mutuelle</p>
-        <h1 class="alliances-page__title font-display">Mes alliances digitales</h1>
-        <p class="alliances-page__subtitle">
-          Scellez une Alliance VIP après une relation certifiée. L'activation requiert le
-          consentement des deux parties ; le badge public reste optionnel pour chacun.
-        </p>
+    <header class="alliances-hero">
+      <div class="alliances-hero__glow" aria-hidden="true" />
+      <div class="alliances-hero__content">
+        <div class="alliances-hero__icon" aria-hidden="true">💍</div>
+        <div class="alliances-hero__text">
+          <p class="alliances-hero__eyebrow">{{ alliancesPageCopy.eyebrow }}</p>
+          <h1 class="alliances-hero__title font-display">{{ alliancesPageCopy.title }}</h1>
+          <p class="alliances-hero__subtitle">{{ alliancesPageCopy.subtitle }}</p>
+        </div>
+        <Tag :value="alliancesPageCopy.priceTag" severity="warn" class="alliances-hero__tag" />
       </div>
-      <Tag value="1200 FCFA / mois" severity="info" />
     </header>
 
     <Message v-if="!auth.isFullyVerified" severity="warn" :closable="false" class="mb-3">
@@ -276,7 +290,7 @@ onMounted(async () => {
 
     <section class="alliances-page__section">
       <div class="alliances-page__alerts-head">
-        <h2 class="alliances-page__section-title font-display">Alertes Alliance VIP</h2>
+        <h2 class="alliances-page__section-title font-display">{{ alliancesPageCopy.alertsTitle }}</h2>
         <Tag
           v-if="unreadAllianceAlerts.length"
           :value="`${unreadAllianceAlerts.length} non lue(s)`"
@@ -285,11 +299,10 @@ onMounted(async () => {
       </div>
       <p v-if="loadingAlerts">Chargement des alertes…</p>
       <p v-else-if="!allianceAlerts.length" class="alliances-page__empty">
-        Aucune alerte pour le moment. Vous serez informé si votre partenaire est déclaré
-        par une autre personne sur la plateforme, sans révéler l'identité du déclarant.
+        {{ alliancesPageCopy.alertsEmpty }}
       </p>
       <div v-else class="alliances-page__cards">
-        <Card v-for="item in allianceAlerts" :key="item.id">
+        <Card v-for="item in allianceAlerts" :key="item.id" class="alliances-card alliances-card--alert">
           <template #content>
             <div class="alliances-page__alert-head">
               <div>
@@ -321,7 +334,7 @@ onMounted(async () => {
     <section v-if="pendingInvitations.length" class="alliances-page__section">
       <h2 class="alliances-page__section-title font-display">Invitations reçues</h2>
       <div class="alliances-page__cards">
-        <Card v-for="item in pendingInvitations" :key="item.id">
+        <Card v-for="item in pendingInvitations" :key="item.id" class="alliances-card alliances-card--invite">
           <template #content>
             <p>
               <strong>{{ item.initiator_name }}</strong> vous invite à sceller une Alliance
@@ -353,7 +366,7 @@ onMounted(async () => {
     <section v-if="sentInvitations.length" class="alliances-page__section">
       <h2 class="alliances-page__section-title font-display">Invitations envoyées</h2>
       <div class="alliances-page__cards">
-        <Card v-for="item in sentInvitations" :key="item.id">
+        <Card v-for="item in sentInvitations" :key="item.id" class="alliances-card">
           <template #content>
             <h3>{{ partnerName(item) }}</h3>
             <Tag value="En attente du consentement" severity="warn" />
@@ -370,16 +383,18 @@ onMounted(async () => {
       v-if="auth.isFullyVerified && !hasBlockingAlliance && eligibleDeclarations.length"
       class="alliances-page__section"
     >
-      <Card>
+      <Card class="alliances-card alliances-card--pay">
         <template #content>
-          <h2 class="alliances-page__section-title font-display">Nouvelle Alliance VIP</h2>
-          <p class="alliances-page__meta">
-            Choisissez une relation mutuellement validée, puis payez l'abonnement mensuel.
-            Votre partenaire devra accepter pour activer l'Alliance.
-          </p>
+          <div class="alliances-card__head">
+            <span class="alliances-card__emoji" aria-hidden="true">✨</span>
+            <div>
+              <h2 class="alliances-card__title font-display">{{ alliancesPageCopy.payTitle }}</h2>
+              <p class="alliances-card__body">{{ alliancesPageCopy.payBody }}</p>
+            </div>
+          </div>
           <form class="alliances-page__form" @submit.prevent="payAlliance">
             <label class="alliances-page__field">
-              <span>Relation certifiée</span>
+              <span>{{ alliancesPageCopy.relationLabel }}</span>
               <Select
                 v-model="selectedDeclarationId"
                 :options="declarationOptions"
@@ -391,10 +406,10 @@ onMounted(async () => {
             </label>
             <Button
               type="submit"
-              label="Payer 1200 FCFA et inviter mon partenaire"
-              icon="pi pi-credit-card"
+              :label="alliancesPageCopy.payCta"
+              icon="pi pi-star-fill"
               :loading="paying"
-              class="alliances-page__submit"
+              class="alliances-card__cta"
             />
           </form>
         </template>
@@ -407,15 +422,20 @@ onMounted(async () => {
     >
       <Message severity="info" :closable="false">
         Aucune relation certifiée disponible.
-        <RouterLink to="/app/declarations">Déclarez et faites certifier une relation</RouterLink>
+        <RouterLink to="/app/declarations">Déclarez votre relation amoureuse</RouterLink>
         avant de créer une Alliance.
       </Message>
     </section>
 
+    <section class="alliances-page__section">
+      <h2 class="alliances-page__section-title font-display">{{ alliancesPageCopy.visibilityTitle }}</h2>
+      <PremiumVisibilityControl />
+    </section>
+
     <section v-if="activeAlliances.length" class="alliances-page__section">
-      <h2 class="alliances-page__section-title font-display">Alliance active</h2>
+      <h2 class="alliances-page__section-title font-display">{{ alliancesPageCopy.activeTitle }}</h2>
       <div class="alliances-page__cards">
-        <Card v-for="item in activeAlliances" :key="item.id">
+        <Card v-for="item in activeAlliances" :key="item.id" class="alliances-card alliances-card--active">
           <template #content>
             <div class="alliances-page__card-head">
               <div>
@@ -439,17 +459,21 @@ onMounted(async () => {
               Abonnement actif jusqu'au
               {{ new Date(item.subscription_end_date).toLocaleDateString('fr-CI') }}
             </p>
-            <div class="alliances-page__badge-row">
-              <label :for="`badge-${item.id}`">Afficher mon badge Alliance</label>
+            <div
+              class="alliances-page__badge-row"
+              :class="{ 'alliances-page__badge-row--locked': !auth.hasActiveSubscription }"
+              @click.capture="!auth.hasActiveSubscription ? onBadgeLockedClick() : undefined"
+            >
+              <label :for="`badge-${item.id}`">{{ alliancesPageCopy.badgeLabel }}</label>
               <ToggleSwitch
                 :id="`badge-${item.id}`"
                 :model-value="myBadgePublic(item)"
-                :disabled="updatingBadgeId === item.id"
+                :disabled="updatingBadgeId === item.id || !auth.hasActiveSubscription"
                 @update:model-value="toggleBadge(item, $event)"
               />
             </div>
             <p class="alliances-page__meta">
-              Le badge est optionnel et indépendant pour chaque partie.
+              {{ auth.hasActiveSubscription ? alliancesPageCopy.badgeHint : 'Réservé au service Premium — touchez pour vous abonner.' }}
             </p>
             <Button
               label="Mettre fin à l'Alliance"
@@ -465,13 +489,13 @@ onMounted(async () => {
     </section>
 
     <section class="alliances-page__section">
-      <h2 class="alliances-page__section-title font-display">Historique</h2>
+      <h2 class="alliances-page__section-title font-display">{{ alliancesPageCopy.historyTitle }}</h2>
       <p v-if="loadingList">Chargement…</p>
       <p v-else-if="!alliances.length" class="alliances-page__empty">
-        Aucune Alliance pour le moment.
+        {{ alliancesPageCopy.historyEmpty }}
       </p>
       <div v-else class="alliances-page__cards">
-        <Card v-for="item in historyAlliances" :key="item.id">
+        <Card v-for="item in historyAlliances" :key="item.id" class="alliances-card">
           <template #content>
             <div class="alliances-page__card-head">
               <div>
@@ -508,35 +532,126 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.alliances-page__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
+.alliances-hero {
+  position: relative;
   margin-bottom: 1.25rem;
+  border-radius: 1.25rem;
+  overflow: hidden;
+  background: linear-gradient(135deg, #fffbeb 0%, #ffffff 45%, #fef3c7 100%);
+  border: 1px solid rgb(251 191 36 / 0.22);
 }
 
-.alliances-page__eyebrow {
+.alliances-hero__glow {
+  position: absolute;
+  top: -3rem;
+  right: -2rem;
+  width: 10rem;
+  height: 10rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(251 191 36 / 0.2) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.alliances-hero__content {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem 1.375rem;
+}
+
+.alliances-hero__icon {
+  font-size: 2rem;
+  line-height: 1;
+  filter: drop-shadow(0 4px 8px rgb(251 191 36 / 0.25));
+}
+
+.alliances-hero__text {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.alliances-hero__eyebrow {
   margin: 0;
   font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--color-muted);
+  color: #b45309;
 }
 
-.alliances-page__title {
+.alliances-hero__title {
   margin: 0.25rem 0 0;
   font-size: 1.5rem;
   font-weight: 800;
   color: var(--color-ink);
 }
 
-.alliances-page__subtitle {
+.alliances-hero__subtitle {
   margin: 0.5rem 0 0;
   color: var(--color-muted);
-  line-height: 1.55;
+  line-height: 1.6;
   max-width: 40rem;
+}
+
+.alliances-hero__tag :deep(.p-tag) {
+  background: rgb(251 191 36 / 0.18);
+  color: #92400e;
+}
+
+.alliances-card :deep(.p-card-body) {
+  padding: 0;
+}
+
+.alliances-card :deep(.p-card-content) {
+  padding: 1.25rem;
+}
+
+.alliances-card--pay,
+.alliances-card--active,
+.alliances-card--invite,
+.alliances-card--alert {
+  border: 1px solid rgb(251 191 36 / 0.18);
+  box-shadow: 0 8px 24px rgb(251 191 36 / 0.07);
+}
+
+.alliances-card--active {
+  background: linear-gradient(180deg, #fffbeb 0%, #ffffff 100%);
+}
+
+.alliances-card__head {
+  display: flex;
+  gap: 0.875rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.alliances-card__emoji {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.alliances-card__title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--color-ink);
+}
+
+.alliances-card__body {
+  margin: 0.375rem 0 0;
+  color: var(--color-muted);
+  line-height: 1.55;
+}
+
+.alliances-card__cta :deep(.p-button) {
+  width: 100%;
+  justify-content: center;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  border-color: #d97706;
+  color: #78350f;
+  font-weight: 800;
 }
 
 .alliances-page__alerts-head {
@@ -594,6 +709,11 @@ onMounted(async () => {
 .alliances-page__submit :deep(.p-button) {
   width: 100%;
   justify-content: center;
+}
+
+.alliances-page__badge-row--locked {
+  opacity: 0.45;
+  cursor: pointer;
 }
 
 .alliances-page__cards {

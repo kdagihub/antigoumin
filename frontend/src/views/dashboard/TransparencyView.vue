@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import Button from 'primevue/button'
 import Card from 'primevue/card'
-import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
 import Tag from 'primevue/tag'
 import { computed, onMounted, ref } from 'vue'
@@ -15,9 +14,17 @@ import {
   fetchTransparencyRequests,
   type TransparencyRequest,
 } from '@/api/transparency'
+import FidelityLoader from '@/components/FidelityLoader.vue'
+import IvorianPhoneInput from '@/components/IvorianPhoneInput.vue'
+import {
+  fidelityDeclaredStatusLabels,
+  fidelityPageCopy,
+  fidelityStatusCopy,
+} from '@/content/fidelityCopy'
 import DashboardShell from '@/layouts/DashboardShell.vue'
 import { useAuthStore } from '@/stores/auth'
 import { downloadTransparencyPdf } from '@/utils/moduleReceipts'
+import { formatIvorianLocalDisplay, isValidIvorianLocalPhone } from '@/utils/ivorianPhone'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -36,22 +43,13 @@ const targetPhone = ref('')
 const canCreate = computed(() => Boolean(paymentId.value) || import.meta.env.DEV)
 const showForm = computed(() => canCreate.value && auth.isFullyVerified)
 
-const statusMeta: Record<
-  TransparencyRequest['status'],
-  { label: string; severity: 'success' | 'warn' | 'danger' | 'secondary' | 'info' }
-> = {
-  PENDING: { label: 'En attente de réponse', severity: 'warn' },
-  ACCEPTED: { label: 'Réponse reçue', severity: 'success' },
-  REFUSED: { label: 'Refusée', severity: 'secondary' },
-  EXPIRED: { label: 'Expirée', severity: 'secondary' },
-  BLOCKED: { label: 'Bloquée', severity: 'danger' },
-  REPORTED: { label: 'Signalée', severity: 'danger' },
-}
+type FidelityStatusKey = keyof typeof fidelityStatusCopy
 
-const declaredStatusLabels: Record<string, string> = {
-  ENGAGED: 'En couple',
-  AVAILABLE: 'Disponible',
-  PREFER_NOT_TO_ANSWER: 'Préfère ne pas répondre',
+function statusMeta(status: string) {
+  if (status in fidelityStatusCopy) {
+    return fidelityStatusCopy[status as FidelityStatusKey]
+  }
+  return { label: status, severity: 'info' as const }
 }
 
 async function exportTransparencyPdf(item: TransparencyRequest) {
@@ -82,7 +80,7 @@ async function resolvePayment() {
       const status = await fetchCheckoutStatus(reference)
       if (status.payment_id) {
         paymentId.value = status.payment_id
-        success.value = 'Paiement confirmé. Envoyez votre demande ci-dessous.'
+        success.value = fidelityPageCopy.paymentSuccess
       }
     } catch {
       // Le formulaire reste bloqué sans paiement valide.
@@ -116,14 +114,17 @@ async function submitRequest() {
     error.value = 'Paiement requis avant envoi.'
     return
   }
+  if (!isValidIvorianLocalPhone(targetPhone.value)) {
+    error.value = 'Saisissez un numéro mobile ivoirien valide (10 chiffres).'
+    return
+  }
   submitting.value = true
   try {
     await createTransparencyRequest({
       target_phone: targetPhone.value.trim(),
       payment_id: paymentId.value ?? undefined,
     })
-    success.value =
-      'Demande envoyée. La personne recevra un SMS identifiable avec un lien de réponse volontaire.'
+    success.value = fidelityPageCopy.sendSuccess
     targetPhone.value = ''
     paymentId.value = null
     await loadRequests()
@@ -141,22 +142,37 @@ onMounted(async () => {
 
 <template>
   <DashboardShell>
-    <header class="transparency-page__header">
-      <div>
-        <p class="transparency-page__eyebrow">Clarification volontaire</p>
-        <h1 class="transparency-page__title font-display">Tests de transparence</h1>
-        <p class="transparency-page__subtitle">
-          Envoyez une demande identifiable à un numéro. La personne choisit librement de
-          répondre, refuser ou ignorer — son silence ne constitue aucune preuve.
-        </p>
+    <header class="fidelity-hero">
+      <div class="fidelity-hero__glow" aria-hidden="true" />
+      <div class="fidelity-hero__monitor-mini" aria-hidden="true">
+        <svg viewBox="0 0 120 32" preserveAspectRatio="none">
+          <path
+            class="fidelity-hero__ecg"
+            d="M0 16 H20 L24 16 L26 8 L28 24 L30 16 H50 L54 16 L56 12 L58 20 L60 16 H80 L84 16 L86 6 L88 26 L90 16 H120"
+          />
+        </svg>
       </div>
-      <Tag value="550 FCFA / demande" severity="info" />
+      <div class="fidelity-hero__content">
+        <div class="fidelity-hero__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+            />
+          </svg>
+        </div>
+        <div class="fidelity-hero__text">
+          <p class="fidelity-hero__eyebrow">{{ fidelityPageCopy.eyebrow }}</p>
+          <h1 class="fidelity-hero__title font-display">{{ fidelityPageCopy.title }}</h1>
+          <p class="fidelity-hero__subtitle">{{ fidelityPageCopy.subtitle }}</p>
+        </div>
+        <Tag :value="fidelityPageCopy.priceTag" severity="info" class="fidelity-hero__tag" />
+      </div>
     </header>
 
     <Message v-if="!auth.isFullyVerified" severity="warn" :closable="false" class="mb-3">
-      Vérifiez votre email ou votre téléphone depuis
+      Confirmez votre email ou votre téléphone depuis
       <RouterLink to="/app/profil">Mon profil</RouterLink>
-      avant d'envoyer une demande.
+      pour lancer un test de fidélité.
     </Message>
 
     <Message v-if="error" severity="error" :closable="false" class="mb-3">{{ error }}</Message>
@@ -164,17 +180,26 @@ onMounted(async () => {
       {{ success }}
     </Message>
 
-    <section v-if="!canCreate && auth.isFullyVerified" class="transparency-page__pay">
-      <Card>
+    <Card v-if="paying" class="fidelity-page__loader-card">
+      <template #content>
+        <FidelityLoader variant="payment" />
+      </template>
+    </Card>
+
+    <section v-else-if="!canCreate && auth.isFullyVerified" class="fidelity-page__section">
+      <Card class="fidelity-card fidelity-card--pay">
         <template #content>
-          <h2 class="transparency-page__section-title font-display">Nouvelle demande</h2>
-          <p>
-            Payez 550 FCFA pour envoyer une invitation identifiable par SMS. Votre nom sera
-            visible par le destinataire.
-          </p>
+          <div class="fidelity-card__head">
+            <span class="fidelity-card__emoji" aria-hidden="true">🫀</span>
+            <div>
+              <h2 class="fidelity-card__title font-display">{{ fidelityPageCopy.payTitle }}</h2>
+              <p class="fidelity-card__body">{{ fidelityPageCopy.payBody }}</p>
+            </div>
+          </div>
           <Button
-            label="Payer 550 FCFA"
-            icon="pi pi-credit-card"
+            :label="fidelityPageCopy.payCta"
+            icon="pi pi-heart"
+            class="fidelity-card__cta"
             :loading="paying"
             @click="payTransparency"
           />
@@ -182,54 +207,75 @@ onMounted(async () => {
       </Card>
     </section>
 
-    <section v-if="showForm" class="transparency-page__form-section">
-      <Card>
+    <Card v-if="submitting" class="fidelity-page__loader-card">
+      <template #content>
+        <FidelityLoader variant="search" />
+      </template>
+    </Card>
+
+    <section v-else-if="showForm && !paying" class="fidelity-page__section">
+      <Card class="fidelity-card fidelity-card--form">
         <template #content>
-          <h2 class="transparency-page__section-title font-display">Nouvelle demande</h2>
-          <p v-if="paymentId" class="transparency-page__hint">
-            Paiement validé — saisissez le numéro à inviter.
-          </p>
-          <form class="transparency-page__form" @submit.prevent="submitRequest">
-            <label class="transparency-page__field">
-              <span>Numéro à inviter</span>
-              <InputText
+          <div class="fidelity-card__head">
+            <span class="fidelity-card__emoji" aria-hidden="true">💙</span>
+            <div>
+              <h2 class="fidelity-card__title font-display">{{ fidelityPageCopy.formTitle }}</h2>
+              <p v-if="paymentId" class="fidelity-card__body">{{ fidelityPageCopy.formHint }}</p>
+            </div>
+          </div>
+
+          <form class="fidelity-form" @submit.prevent="submitRequest">
+            <label class="fidelity-form__field">
+              <span>{{ fidelityPageCopy.targetPhoneLabel }}</span>
+              <IvorianPhoneInput
+                id="transparency-target-phone"
                 v-model="targetPhone"
-                type="tel"
-                inputmode="tel"
-                required
-                placeholder="Ex. 07 00 00 00 00"
+                aria-label="Numéro mobile ivoirien à inviter"
               />
+              <small>{{ fidelityPageCopy.targetPhoneHint }}</small>
             </label>
-            <p class="transparency-page__notice">
-              La personne verra votre identité AntiGoumin et pourra répondre en toute liberté.
-            </p>
+
+            <div class="fidelity-form__notice">
+              <i class="pi pi-info-circle" aria-hidden="true" />
+              <p>{{ fidelityPageCopy.formNotice }}</p>
+            </div>
+
             <Button
               type="submit"
-              label="Envoyer la demande"
+              :label="fidelityPageCopy.submitLabel"
               icon="pi pi-send"
               :loading="submitting"
-              class="transparency-page__submit"
+              class="fidelity-form__submit"
             />
           </form>
         </template>
       </Card>
     </section>
 
-    <section class="transparency-page__list">
-      <h2 class="transparency-page__section-title font-display">Historique</h2>
-      <p v-if="loadingList">Chargement…</p>
-      <p v-else-if="!requests.length" class="transparency-page__empty">
-        Aucune demande pour le moment.
-      </p>
-      <div v-else class="transparency-page__cards">
-        <Card v-for="item in requests" :key="item.id">
+    <section class="fidelity-page__section">
+      <h2 class="fidelity-page__history-title font-display">{{ fidelityPageCopy.historyTitle }}</h2>
+      <FidelityLoader v-if="loadingList" variant="history" />
+      <div v-else-if="!requests.length" class="fidelity-empty">
+        <div class="fidelity-empty__monitor" aria-hidden="true">
+          <svg viewBox="0 0 200 48" preserveAspectRatio="none">
+            <path
+              class="fidelity-empty__ecg"
+              d="M0 24 H30 L36 24 L40 10 L44 38 L48 24 H80 L86 24 L90 18 L94 30 L98 24 H130 L136 24 L140 12 L144 36 L148 24 H200"
+            />
+          </svg>
+        </div>
+        <p>{{ fidelityPageCopy.historyEmpty }}</p>
+      </div>
+      <div v-else class="fidelity-list">
+        <Card v-for="item in requests" :key="item.id" class="fidelity-list__card">
           <template #content>
-            <div class="transparency-page__card-head">
-              <div>
-                <h3>{{ item.target_phone }}</h3>
+            <div class="fidelity-list__head">
+              <div class="fidelity-list__icon" aria-hidden="true">💙</div>
+              <div class="fidelity-list__info">
+                <h3>{{ formatIvorianLocalDisplay(item.target_phone) }}</h3>
                 <Tag
-                  :value="statusMeta[item.status]?.label ?? item.status"
-                  :severity="statusMeta[item.status]?.severity ?? 'info'"
+                  :value="statusMeta(item.status).label"
+                  :severity="statusMeta(item.status).severity"
                 />
               </div>
               <Button
@@ -242,16 +288,16 @@ onMounted(async () => {
                 @click="exportTransparencyPdf(item)"
               />
             </div>
-            <p class="transparency-page__meta">
-              Envoyée le {{ new Date(item.created_at).toLocaleDateString('fr-CI') }}
+            <p class="fidelity-list__meta">
+              Envoyé le {{ new Date(item.created_at).toLocaleDateString('fr-CI') }}
               · expire le {{ new Date(item.expires_at).toLocaleDateString('fr-CI') }}
             </p>
-            <p v-if="item.status === 'ACCEPTED' && item.declared_status" class="transparency-page__response">
+            <p v-if="item.status === 'ACCEPTED' && item.declared_status" class="fidelity-list__response">
               Réponse privée :
-              <strong>{{ declaredStatusLabels[item.declared_status] ?? item.declared_status }}</strong>
-              <span v-if="item.declared_partner_name">
-                ({{ item.declared_partner_name }})
-              </span>
+              <strong>{{
+                fidelityDeclaredStatusLabels[item.declared_status] ?? item.declared_status
+              }}</strong>
+              <span v-if="item.declared_partner_name"> ({{ item.declared_partner_name }})</span>
             </p>
           </template>
         </Card>
@@ -261,100 +307,317 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.transparency-page__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
+.fidelity-hero {
+  position: relative;
   margin-bottom: 1.25rem;
+  border-radius: 1.25rem;
+  overflow: hidden;
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 45%, #dbeafe 100%);
+  border: 1px solid rgb(59 130 246 / 0.18);
 }
 
-.transparency-page__eyebrow {
+.fidelity-hero__glow {
+  position: absolute;
+  top: -3rem;
+  right: -2rem;
+  width: 10rem;
+  height: 10rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(59 130 246 / 0.2) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.fidelity-hero__monitor-mini {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2.5rem;
+  opacity: 0.35;
+  overflow: hidden;
+  background: linear-gradient(180deg, transparent, rgb(30 58 95 / 0.08));
+}
+
+.fidelity-hero__ecg {
+  fill: none;
+  stroke: #3b82f6;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.fidelity-hero__content {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem 1.375rem 1.5rem;
+}
+
+.fidelity-hero__icon {
+  width: 2rem;
+  height: 2rem;
+  color: #2563eb;
+  filter: drop-shadow(0 4px 8px rgb(37 99 235 / 0.25));
+  animation: hero-heart 1.1s ease-in-out infinite;
+}
+
+.fidelity-hero__text {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.fidelity-hero__eyebrow {
   margin: 0;
   font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--color-muted);
+  color: #2563eb;
 }
 
-.transparency-page__title {
+.fidelity-hero__title {
   margin: 0.25rem 0 0;
   font-size: 1.5rem;
   font-weight: 800;
   color: var(--color-ink);
 }
 
-.transparency-page__subtitle {
+.fidelity-hero__subtitle {
   margin: 0.5rem 0 0;
   color: var(--color-muted);
-  line-height: 1.55;
+  line-height: 1.6;
   max-width: 40rem;
 }
 
-.transparency-page__section-title {
-  margin: 0 0 0.75rem;
+.fidelity-hero__tag :deep(.p-tag) {
+  background: rgb(59 130 246 / 0.1);
+  color: #1d4ed8;
+}
+
+.fidelity-page__section {
+  margin-bottom: 1.5rem;
+}
+
+.fidelity-page__loader-card {
+  margin-bottom: 1.5rem;
+}
+
+.fidelity-card :deep(.p-card-body),
+.fidelity-card :deep(.p-card-content) {
+  padding: 1.25rem;
+}
+
+.fidelity-card--pay,
+.fidelity-card--form {
+  border: 1px solid rgb(59 130 246 / 0.16);
+  box-shadow: 0 8px 24px rgb(59 130 246 / 0.08);
+}
+
+.fidelity-card__head {
+  display: flex;
+  gap: 0.875rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.fidelity-card__emoji {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.fidelity-card__title {
+  margin: 0;
   font-size: 1.125rem;
   font-weight: 800;
   color: var(--color-ink);
 }
 
-.transparency-page__hint,
-.transparency-page__notice,
-.transparency-page__empty,
-.transparency-page__meta,
-.transparency-page__response {
+.fidelity-card__body {
+  margin: 0.375rem 0 0;
   color: var(--color-muted);
-  line-height: 1.55;
+  line-height: 1.6;
 }
 
-.transparency-page__form-section,
-.transparency-page__pay,
-.transparency-page__list {
-  margin-bottom: 1.5rem;
+.fidelity-card__cta :deep(.p-button) {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-color: #2563eb;
 }
 
-.transparency-page__form {
+.fidelity-card__cta :deep(.p-button-label) {
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.fidelity-form {
   display: grid;
   gap: 1rem;
 }
 
-.transparency-page__field {
+.fidelity-form__field {
   display: grid;
   gap: 0.375rem;
 }
 
-.transparency-page__field span {
+.fidelity-form__field span {
   font-size: 0.875rem;
   font-weight: 700;
   color: var(--color-ink);
 }
 
-.transparency-page__submit :deep(.p-button) {
-  width: 100%;
-  justify-content: center;
+.fidelity-form__field small {
+  font-size: 0.8125rem;
+  color: var(--color-muted);
 }
 
-.transparency-page__cards {
+.fidelity-form__notice {
+  display: flex;
+  gap: 0.625rem;
+  align-items: flex-start;
+  padding: 0.875rem;
+  border-radius: 0.875rem;
+  background: rgb(59 130 246 / 0.06);
+  border: 1px solid rgb(59 130 246 / 0.14);
+}
+
+.fidelity-form__notice i {
+  color: #2563eb;
+  margin-top: 0.125rem;
+}
+
+.fidelity-form__notice p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #1e40af;
+  line-height: 1.55;
+}
+
+.fidelity-form__submit :deep(.p-button) {
+  width: 100%;
+  justify-content: center;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-color: #2563eb;
+}
+
+.fidelity-page__history-title {
+  margin: 0 0 0.875rem;
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--color-ink);
+}
+
+.fidelity-empty {
+  display: grid;
+  justify-items: center;
+  gap: 0.875rem;
+  padding: 1.5rem 1rem;
+  border-radius: 1rem;
+  border: 1px dashed rgb(59 130 246 / 0.25);
+  background: rgb(59 130 246 / 0.04);
+  text-align: center;
+}
+
+.fidelity-empty__monitor {
+  width: min(100%, 14rem);
+  height: 3rem;
+  border-radius: 0.625rem;
+  overflow: hidden;
+  background: #0f172a;
+  padding: 0.5rem;
+}
+
+.fidelity-empty__ecg {
+  fill: none;
+  stroke: #38bdf8;
+  stroke-width: 2;
+  stroke-linecap: round;
+  animation: empty-ecg 2s ease-in-out infinite;
+}
+
+.fidelity-empty p {
+  margin: 0;
+  max-width: 22rem;
+  color: var(--color-muted);
+  line-height: 1.6;
+}
+
+.fidelity-list {
   display: grid;
   gap: 0.875rem;
 }
 
-.transparency-page__card-head {
+.fidelity-list__card {
+  border: 1px solid rgb(59 130 246 / 0.12);
+  transition: box-shadow 0.2s ease;
+}
+
+.fidelity-list__card:hover {
+  box-shadow: 0 6px 20px rgb(59 130 246 / 0.1);
+}
+
+.fidelity-list__head {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
   gap: 0.75rem;
 }
 
-.transparency-page__card-head h3 {
+.fidelity-list__icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #dbeafe, #eff6ff);
+  font-size: 1.125rem;
+  flex-shrink: 0;
+}
+
+.fidelity-list__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.fidelity-list__info h3 {
   margin: 0 0 0.5rem;
   font-size: 1rem;
   font-weight: 800;
   color: var(--color-ink);
 }
 
+.fidelity-list__meta,
+.fidelity-list__response {
+  margin: 0.75rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.fidelity-list__response strong {
+  color: #1d4ed8;
+}
+
 .mb-3 {
   margin-bottom: 0.75rem;
+}
+
+@keyframes hero-heart {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes empty-ecg {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 </style>

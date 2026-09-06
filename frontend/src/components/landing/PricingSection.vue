@@ -4,6 +4,9 @@ import { RouterLink, useRouter } from 'vue-router'
 
 import { redirectToGeniusPay } from '@/api/checkout'
 import { ApiError } from '@/api/client'
+import { declarationsPricingCopy } from '@/content/declarationsCopy'
+import { fidelityPricingCopy } from '@/content/fidelityCopy'
+import { verificationPricingCopy } from '@/content/verificationCopy'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
@@ -13,6 +16,26 @@ const checkoutError = ref('')
 const servicePath = computed(() =>
   auth.isAuthenticated ? '/app' : '/connexion',
 )
+const subscriptionPath = computed(() =>
+  auth.isAuthenticated ? '/app/abonnement' : '/connexion?redirect=/app/abonnement',
+)
+const declarationsPath = computed(() =>
+  auth.isAuthenticated ? '/app/declarations' : '/connexion',
+)
+const verificationPath = computed(() =>
+  auth.isAuthenticated ? '/app/verification' : '/connexion',
+)
+
+const transparencePath = computed(() =>
+  auth.isAuthenticated ? '/app/transparence' : '/connexion',
+)
+
+function cardLinkTarget(cardId: string) {
+  if (cardId === 'verify') return verificationPath.value
+  if (cardId === 'declare') return declarationsPath.value
+  if (cardId === 'transparence') return transparencePath.value
+  return servicePath.value
+}
 
 const checkoutServices: Record<string, 'DECLARATION' | 'TRANSPARENCY_REQUEST'> = {
   declare: 'DECLARATION',
@@ -64,17 +87,12 @@ interface PricingCard {
 const actionCards: PricingCard[] = [
   {
     id: 'verify',
-    title: 'Vérification',
-    price: '200 FCFA',
-    priceSuffix: '/ acte',
-    tagline: 'Statut certifié avec consentement public',
-    features: [
-      'Uniquement pour les numéros inscrits et certifiés',
-      'Résultat : engagé, disponible, ou non consultable',
-      'Aucun nom, photo ni compteur de relations',
-      'Consultabilité révocable à tout moment',
-    ],
-    buttonLabel: 'Vérifier un numéro',
+    title: verificationPricingCopy.title,
+    price: verificationPricingCopy.price,
+    priceSuffix: verificationPricingCopy.priceSuffix,
+    tagline: verificationPricingCopy.tagline,
+    features: [...verificationPricingCopy.features],
+    buttonLabel: verificationPricingCopy.buttonLabel,
     buttonTo: '/connexion',
     icon: 'M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z',
     cardBorder: 'border-blue-300',
@@ -85,18 +103,13 @@ const actionCards: PricingCard[] = [
   },
   {
     id: 'declare',
-    title: 'Déclaration',
-    price: '300 FCFA',
-    priceSuffix: '/ acte',
-    tagline: 'Officialiser votre relation',
-    features: [
-      'Double validation par OTP',
-      'Choix relation privée ou certification publique',
-      'Refus et expiration possibles',
-      'Mode public annoncé avant acceptation',
-    ],
-    buttonLabel: 'Déclarer ma relation',
-    buttonTo: '/inscription',
+    title: declarationsPricingCopy.title,
+    price: declarationsPricingCopy.price,
+    priceSuffix: declarationsPricingCopy.priceSuffix,
+    tagline: declarationsPricingCopy.tagline,
+    features: [...declarationsPricingCopy.features],
+    buttonLabel: declarationsPricingCopy.buttonLabel,
+    buttonTo: '/connexion',
     icon: 'M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z',
     cardBorder: 'border-[#ED147D]/40',
     iconBg: 'bg-rose-50',
@@ -106,17 +119,12 @@ const actionCards: PricingCard[] = [
   },
   {
     id: 'transparence',
-    title: 'Demande de Transparence (Test de fidélité)',
-    price: '550 FCFA',
-    priceSuffix: '/ demande',
-    tagline: 'Le test de fidélité responsable, officiel et identifiable',
-    features: [
-      'L’auteur est identifié auprès du destinataire',
-      'Acceptation, refus, ignore ou signalement',
-      'Réponse privée, jamais publiée d’office',
-      'Le silence n’est pas une preuve',
-    ],
-    buttonLabel: 'Envoyer une demande',
+    title: fidelityPricingCopy.title,
+    price: fidelityPricingCopy.price,
+    priceSuffix: fidelityPricingCopy.priceSuffix,
+    tagline: fidelityPricingCopy.tagline,
+    features: [...fidelityPricingCopy.features],
+    buttonLabel: fidelityPricingCopy.buttonLabel,
     buttonTo: '/connexion',
     icon: 'M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5',
     cardBorder: 'border-amber-300',
@@ -128,11 +136,11 @@ const actionCards: PricingCard[] = [
 ]
 
 const vipBenefits = [
-  '5 Vérifications incluses',
-  '1 Déclaration incluse',
-  '1 Demande de Transparence incluse',
+  'Alerte si votre partenaire est déclaré par un tiers',
+  'Alerte si une nouvelle relation lui est proposée',
+  '5 vérifications · 1 déclaration · 1 test / mois',
   'Badge VIP optionnel',
-  'Notification neutre de fin d’Alliance',
+  'Visibilité de votre statut',
 ]
 </script>
 
@@ -217,7 +225,7 @@ const vipBenefits = [
           </button>
           <RouterLink
             v-else
-            :to="servicePath"
+            :to="cardLinkTarget(card.id)"
             class="inline-flex w-full items-center justify-center self-end rounded-xl border-2 px-4 py-3 text-sm font-bold transition"
             :class="card.buttonClass"
           >
@@ -283,7 +291,7 @@ const vipBenefits = [
           </ul>
 
           <RouterLink
-            :to="servicePath"
+            :to="subscriptionPath"
             class="inline-flex w-full items-center justify-center self-end rounded-xl bg-[#ED147D] px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-rose-200/60 transition hover:bg-[#d4126f] hover:shadow-xl"
           >
             Obtenir une Alliance Digitale

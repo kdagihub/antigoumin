@@ -9,9 +9,11 @@ import { RouterLink, useRouter } from 'vue-router'
 
 import { ApiError } from '@/api/client'
 import GoogleSignIn from '@/components/GoogleSignIn.vue'
+import IvorianPhoneInput from '@/components/IvorianPhoneInput.vue'
 import LegalAcceptanceCheckbox from '@/components/legal/LegalAcceptanceCheckbox.vue'
 import AuthLayout from '@/layouts/AuthLayout.vue'
 import { postAuthPath, useAuthStore } from '@/stores/auth'
+import { isValidIvorianLocalPhone } from '@/utils/ivorianPhone'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -30,6 +32,11 @@ async function handleSubmit() {
 
   if (!acceptedLegal.value) {
     error.value = 'Vous devez accepter les CGU et la Politique de confidentialité.'
+    return
+  }
+
+  if (!isValidIvorianLocalPhone(phoneNumber.value)) {
+    error.value = 'Saisissez un numéro mobile ivoirien valide (10 chiffres, ex. 07 00 00 00 00).'
     return
   }
 
@@ -125,21 +132,15 @@ async function handleGoogle(idToken: string) {
 
       <div class="field">
         <label for="register-phone">Numéro de téléphone</label>
-        <InputText
+        <IvorianPhoneInput
           id="register-phone"
           v-model="phoneNumber"
-          type="tel"
-          inputmode="tel"
-          autocomplete="tel"
-          required
-          minlength="8"
-          placeholder="Ex. 07 00 00 00 00"
-          class="w-full"
+          aria-label="Numéro mobile ivoirien"
         />
         <small>
-          Obligatoire pour sécuriser votre compte. Après inscription, un email de
-          confirmation et un code SMS vous seront envoyés — l’un des deux suffit pour
-          activer les services. Pensez à vérifier vos courriers indésirables si le
+          Obligatoire pour sécuriser votre compte (Côte d’Ivoire, +225). Après inscription,
+          un email de confirmation et un code SMS vous seront envoyés — l’un des deux suffit
+          pour activer les services. Pensez à vérifier vos courriers indésirables si le
           mail n’apparaît pas.
         </small>
       </div>

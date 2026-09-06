@@ -14,14 +14,12 @@ import {
   type InAppNotification,
 } from '@/api/notifications'
 import VerificationBanner from '@/components/VerificationBanner.vue'
+import PremiumVisibilityControl from '@/components/PremiumVisibilityControl.vue'
 import DashboardShell from '@/layouts/DashboardShell.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
 const router = useRouter()
-const visibilityMessage = ref('')
-const visibilityError = ref('')
-const updatingVisibility = ref(false)
 const alliances = ref<Alliance[]>([])
 const notifications = ref<InAppNotification[]>([])
 
@@ -77,35 +75,6 @@ const alliancePartner = computed(() => {
 function logout() {
   auth.logout()
   router.push('/')
-}
-
-async function toggleStatusVisibility() {
-  visibilityMessage.value = ''
-  visibilityError.value = ''
-  updatingVisibility.value = true
-  try {
-    const nextValue = !auth.user?.is_status_searchable
-    if (
-      !nextValue &&
-      auth.hasActiveSubscription &&
-      !window.confirm(
-        'Votre partenaire d’Alliance sera informé du retrait de votre consultabilité publique. Continuer ?',
-      )
-    ) {
-      return
-    }
-    await auth.setStatusVisibility(nextValue)
-    visibilityMessage.value = nextValue
-      ? 'Votre statut certifié est désormais consultable.'
-      : auth.hasActiveSubscription
-        ? 'Votre statut n’est plus consultable publiquement. Votre partenaire d’Alliance a été informé.'
-        : 'Votre statut n’est plus consultable publiquement.'
-  } catch (error) {
-    visibilityError.value =
-      error instanceof Error ? error.message : 'Modification impossible.'
-  } finally {
-    updatingVisibility.value = false
-  }
 }
 
 async function dismissNotification(notificationId: number) {
@@ -188,40 +157,10 @@ onMounted(async () => {
               </span>
             </dd>
           </div>
-          <div class="profile-detail">
-            <dt><i class="pi pi-eye" aria-hidden="true" /> Statut certifié</dt>
-            <dd class="profile-detail__value">
-              <Tag
-                :value="auth.user.is_status_searchable ? 'Consultable' : 'Privé'"
-                :severity="auth.user.is_status_searchable ? 'success' : 'secondary'"
-              />
-              <Button
-                v-if="auth.hasActiveSubscription && auth.user.is_status_searchable"
-                label="Retirer la consultabilité"
-                severity="secondary"
-                text
-                size="small"
-                :loading="updatingVisibility"
-                :disabled="!auth.isFullyVerified"
-                @click="toggleStatusVisibility"
-              />
-              <Button
-                v-else-if="auth.hasActiveSubscription && !auth.user.is_status_searchable"
-                label="Activer la consultabilité"
-                severity="secondary"
-                text
-                size="small"
-                :loading="updatingVisibility"
-                :disabled="!auth.isFullyVerified"
-                @click="toggleStatusVisibility"
-              />
-              <span v-if="auth.hasActiveSubscription" class="profile-detail__meta">
-                En cas de retrait, votre partenaire d’Alliance sera informé.
-              </span>
-              <span v-else class="profile-detail__meta">
-                Tous les membres sont consultables. Seuls les membres Alliance VIP
-                peuvent masquer leur statut.
-              </span>
+          <div class="profile-detail profile-detail--full">
+            <dt><i class="pi pi-eye" aria-hidden="true" /> Visibilité du statut</dt>
+            <dd>
+              <PremiumVisibilityControl compact />
             </dd>
           </div>
           <div v-if="alliancePartner" class="profile-detail">
@@ -238,13 +177,6 @@ onMounted(async () => {
         </dl>
 
         <Divider />
-
-        <Message v-if="visibilityMessage" severity="success" :closable="false">
-          {{ visibilityMessage }}
-        </Message>
-        <Message v-if="visibilityError" severity="error" :closable="false">
-          {{ visibilityError }}
-        </Message>
 
         <div class="profile-actions">
           <Button
@@ -335,6 +267,10 @@ onMounted(async () => {
 .profile-detail dd {
   font-size: 0.9375rem;
   color: var(--color-ink);
+}
+
+.profile-detail--full dd {
+  margin-inline-start: 0;
 }
 
 .profile-detail__value {

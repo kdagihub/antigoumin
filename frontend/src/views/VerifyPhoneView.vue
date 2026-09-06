@@ -6,12 +6,14 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { ApiError } from '@/api/client'
+import IvorianPhoneInput from '@/components/IvorianPhoneInput.vue'
 import AppShell from '@/layouts/AppShell.vue'
 import { useAuthStore } from '@/stores/auth'
+import { isValidIvorianLocalPhone, toIvorianLocalDigits } from '@/utils/ivorianPhone'
 
 const auth = useAuthStore()
 const router = useRouter()
-const phone = ref(auth.user?.phone_number ?? '')
+const phone = ref(toIvorianLocalDigits(auth.user?.phone_number ?? ''))
 const code = ref('')
 const error = ref('')
 const message = ref('')
@@ -23,6 +25,10 @@ const needsPhone = computed(() => !auth.user?.phone_number)
 
 async function savePhone() {
   error.value = ''
+  if (!isValidIvorianLocalPhone(phone.value)) {
+    error.value = 'Saisissez un numéro mobile ivoirien valide (10 chiffres).'
+    return
+  }
   savingPhone.value = true
   try {
     await auth.updatePhone(phone.value.trim())
@@ -72,10 +78,10 @@ async function confirm() {
     <form v-if="needsPhone || !auth.user?.phone_verified" class="phone-form" @submit.prevent>
       <label class="field">
         <span>Numéro ivoirien</span>
-        <InputText v-model="phone" type="tel" autocomplete="tel" />
+        <IvorianPhoneInput v-model="phone" aria-label="Numéro mobile ivoirien" />
       </label>
       <Button
-        v-if="needsPhone || phone !== auth.user?.phone_number"
+        v-if="needsPhone || toIvorianLocalDigits(phone) !== toIvorianLocalDigits(auth.user?.phone_number ?? '')"
         label="Enregistrer le numéro"
         :loading="savingPhone"
         @click="savePhone"

@@ -5,7 +5,9 @@ import Message from 'primevue/message'
 import { computed, ref } from 'vue'
 
 import { ApiError } from '@/api/client'
+import IvorianPhoneInput from '@/components/IvorianPhoneInput.vue'
 import { useAuthStore } from '@/stores/auth'
+import { isValidIvorianLocalPhone, toIvorianLocalDigits } from '@/utils/ivorianPhone'
 
 const auth = useAuthStore()
 const emailMessage = ref('')
@@ -72,7 +74,7 @@ async function resendEmail() {
 }
 
 function startPhoneEdit() {
-  correctedPhone.value = auth.user?.phone_number ?? ''
+  correctedPhone.value = toIvorianLocalDigits(auth.user?.phone_number ?? '')
   editingPhone.value = true
   otpSent.value = false
   otpCode.value = ''
@@ -84,8 +86,8 @@ async function savePhone() {
   otpError.value = ''
   otpMessage.value = ''
   const nextPhone = correctedPhone.value.trim()
-  if (nextPhone.length < 8) {
-    otpError.value = 'Saisissez un numéro de téléphone valide.'
+  if (!isValidIvorianLocalPhone(nextPhone)) {
+    otpError.value = 'Saisissez un numéro mobile ivoirien valide (10 chiffres).'
     return
   }
   savingPhone.value = true
@@ -229,13 +231,9 @@ async function confirmOtp() {
         <template v-if="editingPhone">
           <label class="verification-card__field">
             <span>Nouveau numéro de téléphone</span>
-            <InputText
+            <IvorianPhoneInput
               v-model="correctedPhone"
-              type="tel"
-              inputmode="tel"
-              autocomplete="tel"
-              placeholder="Ex. 07 00 00 00 00"
-              class="w-full"
+              aria-label="Numéro mobile ivoirien"
             />
           </label>
           <div class="verification-card__actions">

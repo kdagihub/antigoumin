@@ -19,6 +19,11 @@ from core.models import Payment, PhoneVerificationAccess, User
 from core.alliances.services import AllianceServiceError, create_pending_alliance
 from core.notifications.email import notify_user_by_email
 from core.pricing import SERVICE_PRICES, ServiceType
+from core.subscriptions.services import (
+    SubscriptionServiceError,
+    get_active_alliance_for_user,
+    renew_alliance_subscription,
+)
 from core.utils.phone import normalize_phone, to_e164
 
 from .schemas import PaymentWebhookResponseSchema
@@ -105,32 +110,53 @@ def process_payment_webhook(
         if status != Payment.Status.SUCCESS:
             message = "Paiement échoué."
         elif service == ServiceType.ALLIANCE_VIP:
-            declaration_id = metadata.get("declaration_id")
-            if not declaration_id:
-                raise PaymentServiceError(
-                    400,
-                    "La relation certifiée est obligatoire pour créer une Alliance.",
+            if metadata.get("renewal"):
+                try:
+                    alliance_id = int(metadata.get("alliance_id"))
+                except (TypeError, ValueError) as exc:
+                    raise PaymentServiceError(
+                        400,
+                        "Alliance invalide pour le renouvellement.",
+                    ) from exc
+                try:
+                    subscription_end_date = renew_alliance_subscription(
+                        user,
+                        alliance_id,
+                        payment,
+                    )
+                except SubscriptionServiceError as exc:
+                    raise PaymentServiceError(exc.status_code, exc.message) from exc
+                message = (
+                    "Renouvellement validé. Votre Alliance Premium reste active "
+                    f"jusqu'au {subscription_end_date.strftime('%d/%m/%Y')}."
                 )
-            try:
-                alliance = create_pending_alliance(
-                    user,
-                    payment,
-                    declaration_id=int(declaration_id),
+            else:
+                declaration_id = metadata.get("declaration_id")
+                if not declaration_id:
+                    raise PaymentServiceError(
+                        400,
+                        "La relation certifiée est obligatoire pour créer une Alliance.",
+                    )
+                try:
+                    alliance = create_pending_alliance(
+                        user,
+                        payment,
+                        declaration_id=int(declaration_id),
+                    )
+                except (AllianceServiceError, TypeError, ValueError) as exc:
+                    message_text = (
+                        exc.message
+                        if isinstance(exc, AllianceServiceError)
+                        else "Identifiant de relation invalide."
+                    )
+                    raise PaymentServiceError(400, message_text) from exc
+                payment.consumed = True
+                payment.metadata = {**payment.metadata, "alliance_id": alliance.id}
+                payment.save(update_fields=["consumed", "metadata"])
+                message = (
+                    "Paiement validé. L'Alliance reste en attente du consentement "
+                    "du partenaire ; aucun badge n'est encore publié."
                 )
-            except (AllianceServiceError, TypeError, ValueError) as exc:
-                message_text = (
-                    exc.message
-                    if isinstance(exc, AllianceServiceError)
-                    else "Identifiant de relation invalide."
-                )
-                raise PaymentServiceError(400, message_text) from exc
-            payment.consumed = True
-            payment.metadata = {**payment.metadata, "alliance_id": alliance.id}
-            payment.save(update_fields=["consumed", "metadata"])
-            message = (
-                "Paiement validé. L'Alliance reste en attente du consentement "
-                "du partenaire ; aucun badge n'est encore publié."
-            )
         elif service == ServiceType.VERIFICATION:
             phone = metadata.get("phone", "")
             try:
@@ -251,6 +277,7 @@ def create_checkout(
     service_type: str,
     phone: str = "",
     declaration_id: int | None = None,
+    renewal: bool = False,
 ):
     try:
         service = ServiceType(service_type)
@@ -280,12 +307,22 @@ def create_checkout(
         except ValueError as exc:
             raise PaymentServiceError(400, str(exc)) from exc
     if service == ServiceType.ALLIANCE_VIP:
-        if not declaration_id:
-            raise PaymentServiceError(
-                400,
-                "La relation certifiée est obligatoire pour créer une Alliance.",
-            )
-        metadata["declaration_id"] = int(declaration_id)
+        if renewal:
+            alliance = get_active_alliance_for_user(user)
+            if alliance is None:
+                raise PaymentServiceError(
+                    400,
+                    "Aucune Alliance active à renouveler.",
+                )
+            metadata["renewal"] = True
+            metadata["alliance_id"] = alliance.id
+        else:
+            if not declaration_id:
+                raise PaymentServiceError(
+                    400,
+                    "La relation certifiée est obligatoire pour créer une Alliance.",
+                )
+            metadata["declaration_id"] = int(declaration_id)
 
     frontend = settings.FRONTEND_BASE_URL.rstrip("/")
     customer = {

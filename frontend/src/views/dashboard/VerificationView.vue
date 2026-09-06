@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import Button from 'primevue/button'
 import Card from 'primevue/card'
-import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
 import Tag from 'primevue/tag'
 import { computed, onMounted, ref } from 'vue'
@@ -10,6 +9,9 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { redirectToGeniusPay } from '@/api/checkout'
 import { ApiError } from '@/api/client'
 import { searchByPhone, fetchVerificationHistory, type SearchResult, type VerificationHistoryItem } from '@/api/search'
+import IvorianPhoneInput from '@/components/IvorianPhoneInput.vue'
+import VerificationLoader from '@/components/VerificationLoader.vue'
+import { verificationPageCopy } from '@/content/verificationCopy'
 import { verificationResultCopy } from '@/content/verificationResults'
 import DashboardShell from '@/layouts/DashboardShell.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -18,6 +20,7 @@ import {
   downloadVerificationResultPdf,
   verificationHistoryLabel,
 } from '@/utils/moduleReceipts'
+import { formatIvorianLocalDisplay, isValidIvorianLocalPhone, toIvorianLocalDigits } from '@/utils/ivorianPhone'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -33,7 +36,9 @@ const history = ref<VerificationHistoryItem[]>([])
 const loadingHistory = ref(true)
 const consultedAt = ref<Date | null>(null)
 
-const formattedPhone = computed(() => result.value?.phone ?? phone.value.trim())
+const formattedPhone = computed(() =>
+  formatIvorianLocalDisplay(result.value?.phone ?? phone.value),
+)
 
 const resultCopy = computed(() => {
   if (!result.value || result.value.certified_status === 'PAYMENT_REQUIRED') {
@@ -70,9 +75,9 @@ async function runSearch(nextPhone?: string) {
   error.value = ''
   result.value = null
   consultedAt.value = null
-  const queryPhone = (nextPhone ?? phone.value).trim()
-  if (!queryPhone) {
-    error.value = 'Saisissez un numéro ivoirien à vérifier.'
+  const queryPhone = toIvorianLocalDigits((nextPhone ?? phone.value).trim())
+  if (!isValidIvorianLocalPhone(queryPhone)) {
+    error.value = verificationPageCopy.emptyPhoneError
     return
   }
   phone.value = queryPhone
@@ -130,7 +135,8 @@ async function payAndSearch() {
 
 onMounted(async () => {
   await loadHistory()
-  const queryPhone = typeof route.query.phone === 'string' ? route.query.phone : ''
+  const queryPhone =
+    typeof route.query.phone === 'string' ? toIvorianLocalDigits(route.query.phone) : ''
   if (queryPhone) {
     phone.value = queryPhone
     await runSearch(queryPhone)
@@ -142,33 +148,30 @@ onMounted(async () => {
   <DashboardShell>
     <header class="verification-page__header">
       <div>
-        <p class="verification-page__eyebrow">Service payant</p>
-        <h1 class="verification-page__title font-display">Vérifier un numéro</h1>
+        <p class="verification-page__eyebrow">{{ verificationPageCopy.eyebrow }}</p>
+        <h1 class="verification-page__title font-display">{{ verificationPageCopy.title }}</h1>
         <p class="verification-page__subtitle">
-          Consultez uniquement ce qu’AntiGoumin sait sur un numéro — jamais ce qui se
-          passe en dehors de la plateforme.
+          {{ verificationPageCopy.subtitle }}
         </p>
       </div>
-      <Tag value="200 FCFA / numéro" severity="info" />
+      <Tag :value="verificationPageCopy.priceTag" severity="info" />
     </header>
 
     <Card class="verification-page__form-card">
       <template #content>
         <form class="verification-page__form" @submit.prevent="runSearch()">
           <label class="verification-page__field">
-            <span>Numéro ivoirien</span>
-            <InputText
+            <span>{{ verificationPageCopy.fieldLabel }}</span>
+            <IvorianPhoneInput
+              id="verification-phone"
               v-model="phone"
-              type="tel"
-              inputmode="tel"
-              autocomplete="tel"
-              placeholder="Ex. 07 00 00 00 00"
-              aria-label="Numéro à vérifier"
+              aria-label="Numéro mobile ivoirien à vérifier"
             />
+            <small class="verification-page__field-hint">{{ verificationPageCopy.fieldHint }}</small>
           </label>
           <Button
             type="submit"
-            label="Lancer la vérification"
+            :label="verificationPageCopy.submitLabel"
             icon="pi pi-search"
             :loading="loading"
             :disabled="!auth.isFullyVerified"
@@ -183,21 +186,35 @@ onMounted(async () => {
 
     <Message v-if="error" severity="error" :closable="false">{{ error }}</Message>
 
-    <Card v-if="needsPayment && result" class="verification-page__result">
+    <Card v-if="loading" class="verification-page__loader-card">
       <template #content>
-        <Tag value="Paiement requis" severity="warn" />
+        <VerificationLoader variant="search" />
+      </template>
+    </Card>
+
+    <Card v-else-if="paying" class="verification-page__loader-card">
+      <template #content>
+        <VerificationLoader variant="payment" />
+      </template>
+    </Card>
+
+    <Card v-else-if="needsPayment && result" class="verification-page__result">
+      <template #content>
+        <Tag :value="verificationPageCopy.paymentTag" severity="warn" />
         <h2 class="verification-page__result-title font-display">
-          Débloquer la consultation
+          {{ verificationPageCopy.paymentTitle }}
         </h2>
-        <p>
-          Pour consulter le statut certifié du numéro
-          <strong>{{ formattedPhone }}</strong>, payez
-          <strong>{{ result.price_fcfa }} FCFA</strong>. Chaque paiement autorise une
-          consultation unique pour ce numéro.
+        <p class="verification-page__payment-body">
+          {{
+            verificationPageCopy.paymentBody
+              .replace('{phone}', formattedPhone)
+              .replace('{price}', String(result.price_fcfa))
+          }}
         </p>
         <Button
-          label="Payer et consulter"
+          :label="verificationPageCopy.paymentCta"
           icon="pi pi-credit-card"
+          class="verification-page__pay-btn"
           :loading="paying"
           @click="payAndSearch"
         />
@@ -234,9 +251,9 @@ onMounted(async () => {
 
     <section class="verification-page__history">
       <h2 class="verification-page__history-title font-display">Historique</h2>
-      <p v-if="loadingHistory">Chargement…</p>
+      <VerificationLoader v-if="loadingHistory" variant="history" />
       <p v-else-if="!history.length" class="verification-page__history-empty">
-        Aucune vérification consultée pour le moment.
+        {{ verificationPageCopy.historyEmpty }}
       </p>
       <div v-else class="verification-page__history-cards">
         <Card v-for="item in history" :key="item.id">
@@ -316,6 +333,28 @@ onMounted(async () => {
   font-size: 0.875rem;
   font-weight: 700;
   color: var(--color-ink);
+}
+
+.verification-page__field-hint {
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+  line-height: 1.45;
+}
+
+.verification-page__loader-card {
+  margin-top: 1rem;
+}
+
+.verification-page__payment-body {
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.6;
+  font-size: 1rem;
+}
+
+.verification-page__pay-btn :deep(.p-button-label) {
+  font-weight: 800;
+  letter-spacing: 0.04em;
 }
 
 .verification-page__result {

@@ -13,29 +13,29 @@ export const verificationResultCopy: Record<
   VerificationResultCopy
 > = {
   NOT_A_MEMBER: {
-    title: 'Pas encore membre d’AntiGoumin',
+    title: 'Pas encore sur AntiGoumin',
     body:
-      'Ce numéro n’est pas enregistré sur la plateforme. Cela ne signifie pas que la personne est célibataire dans la vie réelle — seulement qu’AntiGoumin ne dispose d’aucune donnée pour ce contact.',
+      'Ce numéro n’est pas inscrit sur la plateforme pour le moment. Cela ne veut pas dire que la personne est célibataire dans la vie réelle — simplement qu’AntiGoumin ne dispose d’aucune information certifiée pour ce contact. Vous pouvez l’inviter à rejoindre la plateforme.',
     tone: 'neutral',
-    ctaLabel: 'Inviter via une déclaration',
+    ctaLabel: 'Inviter en déclaration amoureuse',
     ctaRoute: '/app/declarations',
   },
   REGISTERED_NO_DECLARATION: {
-    title: 'Membre sans relation déclarée',
+    title: 'Inscrit, sans relation déclarée',
     body:
-      'Ce numéro est inscrit sur AntiGoumin, mais n’est associé à aucune relation déclarée et certifiée sur la plateforme pour le moment.',
+      'Bonne nouvelle côté registre : ce numéro est bien membre d’AntiGoumin, mais aucune relation n’a encore été déclarée et certifiée pour lui sur la plateforme.',
     tone: 'success',
   },
   ENGAGED: {
-    title: 'Relation déclarée sur AntiGoumin',
+    title: 'Relation déjà déclarée',
     body:
-      'Ce numéro est engagé dans une relation déclarée et certifiée sur la plateforme. L’identité du partenaire n’est jamais révélée. Vous pouvez contacter directement la personne pour en discuter.',
+      'Ce numéro est engagé dans une relation déclarée et certifiée sur AntiGoumin. L’identité du partenaire reste confidentielle — seul le statut relationnel est confirmé. Si vous avez des questions, le mieux reste d’en parler directement avec la personne.',
     tone: 'warn',
   },
   STATUS_NOT_PUBLIC: {
-    title: 'Statut non consultable',
+    title: 'Statut protégé',
     body:
-      'Ce numéro appartient à un membre Alliance Digitale VIP qui a choisi de ne pas rendre son statut consultable publiquement. AntiGoumin ne peut pas afficher de statut certifié pour ce contact.',
+      'Ce numéro appartient à un membre Alliance Digitale VIP qui a choisi de garder son statut privé. AntiGoumin respecte ce choix et ne peut pas afficher de statut certifié pour ce contact.',
     tone: 'info',
   },
 }

@@ -4,7 +4,10 @@ import { RouterLink, useRouter } from 'vue-router'
 
 import heroImage from '@/assets/img/heroe1.jpeg'
 import heroFallback from '@/assets/img/hero-bg.jpg'
+import IvorianPhoneInput from '@/components/IvorianPhoneInput.vue'
+import { verificationHeroCopy } from '@/content/verificationCopy'
 import { useAuthStore } from '@/stores/auth'
+import { toIvorianLocalDigits } from '@/utils/ivorianPhone'
 
 const heroSrc = ref(heroImage)
 
@@ -48,7 +51,7 @@ const trustValues = [
 ]
 
 async function handleVerify() {
-  const q = phoneQuery.value.trim()
+  const q = toIvorianLocalDigits(phoneQuery.value.trim())
   if (!auth.isAuthenticated) {
     await router.push({
       name: 'login',
@@ -109,7 +112,7 @@ async function handleVerify() {
           class="animate-fade-up mt-6 max-w-xl text-lg leading-relaxed text-slate-300 lg:text-xl"
           style="animation-delay: 160ms"
         >
-          Vérifie un statut certifié, déclare ton partenaire ou envoie une demande de transparence.
+          {{ verificationHeroCopy.subtitle }}
         </p>
 
         <!-- Barre de recherche glassmorphism -->
@@ -118,28 +121,26 @@ async function handleVerify() {
           style="animation-delay: 240ms"
           @submit.prevent="handleVerify"
         >
-          <label for="hero-phone" class="sr-only">Numéro de téléphone à vérifier</label>
+          <label for="hero-phone" class="sr-only">Numéro mobile ivoirien à vérifier</label>
           <div
             class="flex flex-col gap-3 rounded-2xl border border-white/20 bg-white/10 p-2 backdrop-blur-md sm:flex-row sm:items-center"
           >
-            <input
+            <IvorianPhoneInput
               id="hero-phone"
               v-model="phoneQuery"
-              type="tel"
-              inputmode="tel"
-              autocomplete="tel"
-              placeholder="Ex: 07 XX XX XX XX..."
-              class="min-w-0 flex-1 rounded-xl border-0 bg-transparent px-4 py-4 text-base font-medium text-white placeholder:text-slate-400 focus:outline-none focus:ring-0"
+              variant="dark"
+              aria-label="Numéro mobile ivoirien à vérifier"
+              class="min-w-0 flex-1"
             />
             <button
               type="submit"
               class="cta-verify shrink-0 rounded-xl bg-[#ED147D] px-6 py-4 text-base font-bold text-white shadow-lg shadow-rose-900/40 transition hover:scale-[1.02] hover:bg-[#d4126f] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ED147D] sm:px-8"
             >
-              Vérifier (200 FCFA)
+              {{ verificationHeroCopy.cta }}
             </button>
           </div>
           <p class="mt-3 text-xs text-slate-400">
-            Paiement sécurisé via Mobile Money · Résultat instantané
+            {{ verificationHeroCopy.disclaimer }}
           </p>
         </form>
       </div>

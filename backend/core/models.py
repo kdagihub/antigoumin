@@ -305,6 +305,18 @@ class InAppNotification(models.Model):
             "PARTNER_DECLARED_BY_OTHER",
             "Partenaire déclaré par un tiers",
         )
+        SUBSCRIPTION_EXPIRING = (
+            "SUBSCRIPTION_EXPIRING",
+            "Abonnement Premium bientôt expiré",
+        )
+        SUBSCRIPTION_EXPIRED = (
+            "SUBSCRIPTION_EXPIRED",
+            "Abonnement Premium expiré",
+        )
+        SUBSCRIPTION_RENEWED = (
+            "SUBSCRIPTION_RENEWED",
+            "Abonnement Premium renouvelé",
+        )
 
     recipient = models.ForeignKey(
         User,

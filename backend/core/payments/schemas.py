@@ -23,6 +23,7 @@ class CheckoutCreateSchema(Schema):
     service_type: str
     phone: str = ""
     declaration_id: int | None = None
+    renewal: bool = False
 
 
 class CheckoutResponseSchema(Schema):

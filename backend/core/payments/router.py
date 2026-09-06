@@ -31,6 +31,7 @@ def start_checkout(request, payload: CheckoutCreateSchema):
             service_type=payload.service_type,
             phone=payload.phone,
             declaration_id=payload.declaration_id,
+            renewal=payload.renewal,
         )
     except PaymentServiceError as exc:
         handle_payment_error(exc)

@@ -4,6 +4,8 @@ import { RouterLink, useRoute } from 'vue-router'
 
 import BrandMark from '@/components/BrandMark.vue'
 import DashboardUserMenu from '@/components/DashboardUserMenu.vue'
+import AllianceRingsIcon from '@/components/icons/AllianceRingsIcon.vue'
+import PwaInstallButton from '@/components/PwaInstallButton.vue'
 import { dashboardAccountLinks, dashboardModuleNavItems } from '@/config/dashboardNav'
 import { useAuthStore } from '@/stores/auth'
 
@@ -50,7 +52,11 @@ function isActive(path: string): boolean {
           class="dashboard__nav-link"
           :class="{ 'dashboard__nav-link--active': isActive(item.to) }"
         >
-          <i :class="item.icon" aria-hidden="true" />
+          <AllianceRingsIcon
+            v-if="item.customIcon === 'alliance-rings'"
+            class="dashboard__nav-svg"
+          />
+          <i v-else :class="item.icon" aria-hidden="true" />
           <span>{{ item.label }}</span>
         </RouterLink>
 
@@ -61,7 +67,10 @@ function isActive(path: string): boolean {
           :key="item.to"
           :to="item.to"
           class="dashboard__nav-link"
-          :class="{ 'dashboard__nav-link--active': isActive(item.to) }"
+          :class="{
+            'dashboard__nav-link--active': isActive(item.to),
+            'dashboard__nav-link--premium': item.to === '/app/abonnement',
+          }"
         >
           <i :class="item.icon" aria-hidden="true" />
           <span>{{ item.label }}</span>
@@ -69,6 +78,7 @@ function isActive(path: string): boolean {
       </nav>
 
       <div class="dashboard__sidebar-footer">
+        <PwaInstallButton variant="sidebar" />
         <RouterLink to="/" class="dashboard__back-link">
           <i class="pi pi-arrow-left" aria-hidden="true" />
           Retour au site
@@ -80,10 +90,20 @@ function isActive(path: string): boolean {
       <header class="dashboard__topbar">
         <RouterLink to="/app" class="dashboard__topbar-brand">
           <BrandMark size="sm" />
-          <span class="font-display">AntiGoumin</span>
         </RouterLink>
 
         <div class="dashboard__topbar-actions">
+          <PwaInstallButton variant="icon" />
+          <RouterLink
+            to="/app/abonnement"
+            class="dashboard__premium-chip"
+            :class="{ 'dashboard__premium-chip--active': auth.hasActiveSubscription }"
+          >
+            <i class="pi pi-star-fill" aria-hidden="true" />
+            <span class="dashboard__premium-chip-text">
+              {{ auth.hasActiveSubscription ? 'Premium actif' : 'Passer Premium' }}
+            </span>
+          </RouterLink>
           <RouterLink
             v-if="auth.user && !auth.isFullyVerified"
             to="/app/profil"
@@ -102,16 +122,33 @@ function isActive(path: string): boolean {
     </div>
 
     <nav class="dashboard__bottom-nav" aria-label="Navigation mobile">
-      <RouterLink
-        v-for="item in dashboardModuleNavItems"
-        :key="`mobile-${item.to}`"
-        :to="item.to"
-        class="dashboard__bottom-link"
-        :class="{ 'dashboard__bottom-link--active': isActive(item.to) }"
-      >
-        <i :class="item.icon" aria-hidden="true" />
-        <span>{{ item.shortLabel ?? item.label }}</span>
-      </RouterLink>
+      <template v-for="item in dashboardModuleNavItems" :key="`mobile-${item.to}`">
+        <RouterLink
+          v-if="item.mobileFab"
+          :to="item.to"
+          class="dashboard__bottom-fab"
+          :class="{ 'dashboard__bottom-fab--active': isActive(item.to) }"
+          :aria-label="item.label"
+        >
+          <span class="dashboard__bottom-fab-bubble" aria-hidden="true">
+            <i :class="item.icon" />
+          </span>
+          <span class="dashboard__bottom-fab-label">{{ item.shortLabel ?? item.label }}</span>
+        </RouterLink>
+        <RouterLink
+          v-else
+          :to="item.to"
+          class="dashboard__bottom-link"
+          :class="{ 'dashboard__bottom-link--active': isActive(item.to) }"
+        >
+          <AllianceRingsIcon
+            v-if="item.customIcon === 'alliance-rings'"
+            class="dashboard__bottom-svg"
+          />
+          <i v-else :class="item.icon" aria-hidden="true" />
+          <span>{{ item.shortLabel ?? item.label }}</span>
+        </RouterLink>
+      </template>
     </nav>
   </div>
 </template>
@@ -219,6 +256,29 @@ function isActive(path: string): boolean {
   color: #be123c;
 }
 
+.dashboard__nav-link--premium {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 1px solid #fbbf24;
+  color: #92400e;
+  box-shadow: 0 2px 8px rgb(251 191 36 / 0.2);
+}
+
+.dashboard__nav-link--premium:hover {
+  background: linear-gradient(135deg, #fde68a 0%, #fcd34d 100%);
+  color: #78350f;
+}
+
+.dashboard__nav-link--premium.dashboard__nav-link--active {
+  background: linear-gradient(135deg, #fde68a 0%, #fbbf24 100%);
+  color: #78350f;
+}
+
+.dashboard__nav-svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+}
+
 .dashboard__nav-divider {
   height: 1px;
   margin: 0.75rem 0.5rem;
@@ -250,7 +310,7 @@ function isActive(path: string): boolean {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  padding-bottom: 4.75rem;
+  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
 }
 
 .dashboard__topbar {
@@ -282,6 +342,47 @@ function isActive(path: string): boolean {
   align-items: center;
   gap: 0.5rem;
   flex-shrink: 0;
+}
+
+.dashboard__premium-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 1px solid #fbbf24;
+  color: #92400e;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgb(251 191 36 / 0.25);
+}
+
+.dashboard__premium-chip--active {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border-color: #34d399;
+  color: #047857;
+  box-shadow: 0 2px 8px rgb(52 211 153 / 0.2);
+}
+
+.dashboard__premium-chip i {
+  font-size: 0.75rem;
+}
+
+@media (max-width: 380px) {
+  .dashboard__premium-chip-text {
+    max-width: 5.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+@media (min-width: 1024px) {
+  .dashboard__premium-chip {
+    display: none;
+  }
 }
 
 .dashboard__verify-chip {
@@ -321,19 +422,22 @@ function isActive(path: string): boolean {
   z-index: 30;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
+  align-items: end;
   gap: 0;
   background: #fff;
   border-top: 1px solid var(--color-border);
-  padding: 0.35rem 0.25rem calc(0.35rem + env(safe-area-inset-bottom));
+  padding: 0.25rem 0.35rem calc(0.5rem + env(safe-area-inset-bottom));
+  box-shadow: 0 -4px 24px rgb(15 23 42 / 0.06);
 }
 
 .dashboard__bottom-link {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 0.125rem;
-  padding: 0.35rem 0.15rem;
+  justify-content: flex-end;
+  gap: 0.2rem;
+  min-height: 3rem;
+  padding: 0.35rem 0.15rem 0.15rem;
   text-decoration: none;
   color: var(--color-muted);
   font-size: 0.625rem;
@@ -342,12 +446,78 @@ function isActive(path: string): boolean {
   text-align: center;
 }
 
+.dashboard__bottom-link span {
+  max-width: 4.25rem;
+  font-size: 0.5625rem;
+  line-height: 1.15;
+}
+
 .dashboard__bottom-link i {
-  font-size: 1rem;
+  font-size: 1.125rem;
+}
+
+.dashboard__bottom-svg {
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 .dashboard__bottom-link--active {
   color: var(--color-primary);
+}
+
+.dashboard__bottom-fab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3rem;
+  margin-top: -1.35rem;
+  padding-bottom: 0.1rem;
+  text-decoration: none;
+  color: var(--color-primary);
+}
+
+.dashboard__bottom-fab-bubble {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.65rem;
+  height: 3.65rem;
+  border-radius: 999px;
+  background: linear-gradient(145deg, #ff4d94 0%, #ed147d 52%, #c41068 100%);
+  color: #fff;
+  box-shadow:
+    0 10px 24px rgb(237 20 125 / 0.42),
+    0 0 0 4px #fff,
+    0 0 0 5px rgb(237 20 125 / 0.12);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.dashboard__bottom-fab-bubble i {
+  font-size: 1.55rem;
+}
+
+.dashboard__bottom-fab:active .dashboard__bottom-fab-bubble {
+  transform: scale(0.94);
+}
+
+.dashboard__bottom-fab--active .dashboard__bottom-fab-bubble {
+  box-shadow:
+    0 12px 28px rgb(237 20 125 / 0.5),
+    0 0 0 4px #fff,
+    0 0 0 6px rgb(237 20 125 / 0.22);
+  transform: scale(1.04);
+}
+
+.dashboard__bottom-fab-label {
+  font-size: 0.5625rem;
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--color-primary);
+  max-width: 4.25rem;
+  text-align: center;
 }
 
 @media (max-width: 380px) {

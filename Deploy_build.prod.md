@@ -192,6 +192,48 @@ EMAIL_USE_SSL=True
 DEFAULT_FROM_EMAIL=AntiGoumin <contact@antigoumin.live>
 ```
 
+### Renouvellement Premium (cron quotidien)
+
+L’abonnement Alliance Premium se renouvelle **manuellement** (Mobile Money). Le backend envoie les rappels **J-7, J-3, J-1** et désactive les avantages expirés via :
+
+```bash
+python manage.py process_subscriptions
+```
+
+**À planifier 1× par jour en production** (ex. 08:00 UTC).
+
+#### Option 1 — Cron sur le serveur Dokploy / VPS
+
+Si le conteneur backend tourne en permanence :
+
+```cron
+0 8 * * * docker exec <nom_conteneur_backend> python manage.py process_subscriptions >> /var/log/antigoumin-subscriptions.log 2>&1
+```
+
+Remplacez `<nom_conteneur_backend>` par le nom réel (`docker ps`).
+
+#### Option 2 — Tâche planifiée Dokploy
+
+Si Dokploy propose un **Scheduled Task** sur le service backend :
+
+- **Commande** : `python manage.py process_subscriptions`
+- **Fréquence** : quotidienne, 08:00 (ajuster au fuseau Côte d’Ivoire si besoin)
+
+#### Ce que fait la commande
+
+| Action | Détail |
+|--------|--------|
+| Rappels J-7 / J-3 / J-1 | Email + notification in-app aux deux partenaires |
+| Expiration | Désactive badge Alliance, remet visibilité publique, notifie les deux parties |
+
+Vérification manuelle après déploiement :
+
+```bash
+docker exec <nom_conteneur_backend> python manage.py process_subscriptions
+```
+
+Sortie attendue : `Rappels envoyés : N — Alliances expirées traitées : M`.
+
 Volumes Dokploy (Advanced) :
 
 ```text

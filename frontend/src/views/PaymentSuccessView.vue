@@ -52,7 +52,7 @@ onMounted(async () => {
       return
     }
     if (status.credited && status.service_type === 'ALLIANCE_VIP') {
-      await router.replace({ path: '/app/alliances' })
+      await router.replace({ path: '/app/abonnement' })
       return
     }
   } catch (err) {

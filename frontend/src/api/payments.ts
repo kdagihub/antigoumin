@@ -4,6 +4,7 @@ export interface CheckoutPayload {
   service_type: 'VERIFICATION' | 'DECLARATION' | 'TRANSPARENCY_REQUEST' | 'ALLIANCE_VIP'
   phone?: string
   declaration_id?: number
+  renewal?: boolean
 }
 
 export interface CheckoutResponse {

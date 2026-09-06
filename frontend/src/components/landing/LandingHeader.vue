@@ -3,6 +3,7 @@ import { onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 
 import logoAgm from '@/assets/img/logo_agm_sf.png'
+import PwaInstallButton from '@/components/PwaInstallButton.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
@@ -13,10 +14,10 @@ const servicesOpen = ref(false)
 
 const serviceDropdownLinks = [
   { label: 'Vérification', to: '/#service-verification' },
-  { label: 'Déclaration', to: '/#service-declaration' },
+  { label: 'Relations', to: '/#service-declaration' },
   {
     label: 'Demande de Transparence (Test de fidélité)',
-    to: '/#service-transparence',
+    to: '/#service-fidelity',
   },
 ]
 
@@ -153,7 +154,9 @@ onBeforeUnmount(() => {
         </RouterLink>
       </nav>
 
-      <div class="relative z-10 flex shrink-0 items-center gap-3">
+      <div class="relative z-10 flex shrink-0 items-center gap-2 sm:gap-3">
+        <PwaInstallButton variant="header" />
+
         <!-- Actions bureau -->
         <div class="hidden items-center gap-3 lg:flex">
           <RouterLink
