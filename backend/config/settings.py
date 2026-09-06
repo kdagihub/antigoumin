@@ -137,11 +137,9 @@ GENIUSPAY = {
     "TIMEOUT": GENIUSPAY_TIMEOUT,
 }
 
-D7_CLIENT_ID = os.environ.get("D7_CLIENT_ID", "")
-D7_CLIENT_SECRET = os.environ.get("D7_CLIENT_SECRET", "")
-D7_TOKEN = os.environ.get("D7_TOKEN", "")
-D7_ORIGINATOR = os.environ.get("D7_ORIGINATOR", "AntiGoumin")
-D7_API_BASE_URL = os.environ.get("D7_API_BASE_URL", "https://api.d7networks.com")
+ZAVU_API_KEY = os.environ.get("ZAVU_API_KEY", "")
+ZAVU_SENDER_ID = os.environ.get("ZAVU_SENDER_ID", "")
+ZAVU_API_BASE_URL = os.environ.get("ZAVU_API_BASE_URL", "https://api.zavu.dev")
 
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "465"))

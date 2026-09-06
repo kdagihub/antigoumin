@@ -5,7 +5,7 @@ from django.core.cache import cache
 from django.utils import timezone
 
 from core.models import User
-from core.notifications.d7 import send_sms
+from core.notifications.zavu import send_sms
 from core.notifications.email import notify_user_by_email
 from core.utils.phone import normalize_phone
 

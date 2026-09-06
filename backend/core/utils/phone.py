@@ -13,7 +13,7 @@ def normalize_phone(value: str) -> str:
 
 
 def to_e164(value: str, default_country_code: str = "225") -> str:
-    """Formate un numéro pour l'API D7 (indicatif pays obligatoire)."""
+    """Formate un numéro en E.164 (indicatif pays obligatoire)."""
     digits = normalize_phone(value)
     if digits.startswith(default_country_code):
         return f"+{digits}"

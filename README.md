@@ -97,7 +97,7 @@ Variables d'environnement à configurer sur Dokploy :
 | `CORS_ALLOWED_ORIGINS` | `https://antigoumin.ciacems.site,https://antigoumin.live` |
 | `CSRF_TRUSTED_ORIGINS` | Frontends + domaines API (`https://api.antigoumin.live`, …) |
 | `FRONTEND_BASE_URL` | `https://antigoumin.live` (liens SMS/email) |
-| `D7_TOKEN` / `D7_CLIENT_ID` / `D7_CLIENT_SECRET` | Identifiants SMS D7 Networks |
+| `ZAVU_API_KEY` / `ZAVU_SENDER_ID` | Identifiants SMS [Zavu](https://docs.zavu.dev/guides/sending-messages/sms) |
 | `EMAIL_HOST` / `EMAIL_USER` / `EMAIL_PASSWORD` | SMTP Hostinger (`smtp.hostinger.com:465`) |
 | `DATABASE_URL` | `postgres://user:pass@host:5432/antigoumin` |
 | `REDIS_URL` | URL Redis (ex: `redis://redis:6379/1`) |

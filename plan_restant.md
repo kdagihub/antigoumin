@@ -10,7 +10,7 @@ Voici où en est le projet AntiGoumin et ce qu’il reste à faire.
 | Auth (email, Google OAuth, JWT) | ✅ |
 | Vérification compte (email **ou** téléphone suffit) | ✅ |
 | Mot de passe oublié par email | ✅ *(code fait, pas encore commité)* |
-| Notifications SMS (D7) + email (Hostinger) | ✅ |
+| Notifications SMS (Zavu) + email (Hostinger) | ✅ |
 | Formulaire contact public | ✅ |
 | Paiements GeniusPay (checkout + webhooks) | ✅ sandbox |
 | Recherche statut matrimonial par numéro | ✅ API avec 4 résultats distincts |

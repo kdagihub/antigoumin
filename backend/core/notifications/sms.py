@@ -5,7 +5,7 @@ from datetime import datetime
 from django.conf import settings
 from django.core.cache import cache
 
-from core.notifications.d7 import send_sms
+from core.notifications.zavu import send_sms
 from core.notifications.email import send_transactional_email
 
 logger = logging.getLogger(__name__)
