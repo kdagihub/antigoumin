@@ -9,6 +9,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { redirectToGeniusPay } from '@/api/checkout'
 import { ApiError } from '@/api/client'
 import { fetchCheckoutStatus, fetchUnusedPayment } from '@/api/payments'
+import { fetchVipQuotaStatus, getVipQuotaItem, type VipQuotaStatus } from '@/api/subscriptions'
 import {
   createTransparencyRequest,
   fetchTransparencyRequests,
@@ -33,6 +34,7 @@ const router = useRouter()
 const requests = ref<TransparencyRequest[]>([])
 const loadingList = ref(true)
 const paymentId = ref<number | null>(null)
+const vipQuota = ref<VipQuotaStatus | null>(null)
 const paying = ref(false)
 const submitting = ref(false)
 const downloadingPdfId = ref<number | null>(null)
@@ -40,8 +42,19 @@ const error = ref('')
 const success = ref('')
 const targetPhone = ref('')
 
-const canCreate = computed(() => Boolean(paymentId.value) || import.meta.env.DEV)
+const transparencyQuota = computed(() => getVipQuotaItem(vipQuota.value, 'TRANSPARENCY_REQUEST'))
+const canUseVipQuota = computed(() => (transparencyQuota.value?.remaining ?? 0) > 0)
+const canCreate = computed(
+  () => Boolean(paymentId.value) || canUseVipQuota.value || import.meta.env.DEV,
+)
 const showForm = computed(() => canCreate.value && auth.isFullyVerified)
+const formHint = computed(() =>
+  paymentId.value
+    ? fidelityPageCopy.formHint
+    : canUseVipQuota.value
+      ? fidelityPageCopy.vipFormHint
+      : fidelityPageCopy.formHint,
+)
 
 type FidelityStatusKey = keyof typeof fidelityStatusCopy
 
@@ -70,6 +83,14 @@ async function loadRequests() {
     error.value = err instanceof ApiError ? err.message : 'Chargement impossible.'
   } finally {
     loadingList.value = false
+  }
+}
+
+async function loadVipQuota() {
+  try {
+    vipQuota.value = await fetchVipQuotaStatus()
+  } catch {
+    vipQuota.value = null
   }
 }
 
@@ -110,7 +131,7 @@ async function payTransparency() {
 async function submitRequest() {
   error.value = ''
   success.value = ''
-  if (!paymentId.value && !import.meta.env.DEV) {
+  if (!paymentId.value && !canUseVipQuota.value && !import.meta.env.DEV) {
     error.value = 'Paiement requis avant envoi.'
     return
   }
@@ -127,7 +148,8 @@ async function submitRequest() {
     success.value = fidelityPageCopy.sendSuccess
     targetPhone.value = ''
     paymentId.value = null
-    await loadRequests()
+    paymentId.value = null
+    await Promise.all([loadRequests(), loadVipQuota()])
   } catch (err) {
     error.value = err instanceof ApiError ? err.message : 'Envoi impossible.'
   } finally {
@@ -136,7 +158,7 @@ async function submitRequest() {
 }
 
 onMounted(async () => {
-  await Promise.all([loadRequests(), resolvePayment()])
+  await Promise.all([loadRequests(), resolvePayment(), loadVipQuota()])
 })
 </script>
 
@@ -193,7 +215,13 @@ onMounted(async () => {
             <span class="fidelity-card__emoji" aria-hidden="true">🫀</span>
             <div>
               <h2 class="fidelity-card__title font-display">{{ fidelityPageCopy.payTitle }}</h2>
-              <p class="fidelity-card__body">{{ fidelityPageCopy.payBody }}</p>
+              <p class="fidelity-card__body">
+                {{
+                  auth.hasActiveSubscription
+                    ? fidelityPageCopy.vipQuotaExhausted
+                    : fidelityPageCopy.payBody
+                }}
+              </p>
             </div>
           </div>
           <Button
@@ -220,7 +248,7 @@ onMounted(async () => {
             <span class="fidelity-card__emoji" aria-hidden="true">💙</span>
             <div>
               <h2 class="fidelity-card__title font-display">{{ fidelityPageCopy.formTitle }}</h2>
-              <p v-if="paymentId" class="fidelity-card__body">{{ fidelityPageCopy.formHint }}</p>
+              <p v-if="canCreate" class="fidelity-card__body">{{ formHint }}</p>
             </div>
           </div>
 

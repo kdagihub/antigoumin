@@ -44,4 +44,8 @@ export const subscriptionPageCopy = {
     days === 1 ? 'Expire demain' : `Expire dans ${days} jours`,
   stepDeclare: 'Déclarer',
   stepAlliance: 'Sceller l’Alliance',
+  quotaTitle: 'Forfait mensuel inclus',
+  quotaVerification: 'Vérifications',
+  quotaDeclaration: 'Déclarations',
+  quotaTransparency: 'Tests de fidélité',
 } as const

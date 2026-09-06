@@ -22,6 +22,9 @@ export const declarationsPageCopy = {
   historyEmpty:
     'Aucune relation déclarée pour le moment. Quand vous serez prêt·e, votre histoire commencera ici.',
   paymentSuccess: 'C’est noté ! Complétez votre déclaration amoureuse ci-dessous.',
+  vipFormHint: 'Forfait Premium — 1 déclaration incluse ce mois. Personnalisez votre invitation.',
+  vipQuotaExhausted:
+    'Votre déclaration incluse ce mois est utilisée. Payez 300 FCFA pour en envoyer une autre.',
   sendSuccess:
     'Invitation envoyée avec tendresse. Votre partenaire recevra un SMS pour accepter ou refuser.',
   endConfirm:

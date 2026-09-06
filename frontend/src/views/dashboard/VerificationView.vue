@@ -9,6 +9,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { redirectToGeniusPay } from '@/api/checkout'
 import { ApiError } from '@/api/client'
 import { searchByPhone, fetchVerificationHistory, type SearchResult, type VerificationHistoryItem } from '@/api/search'
+import { fetchVipQuotaStatus, getVipQuotaItem, type VipQuotaStatus } from '@/api/subscriptions'
 import IvorianPhoneInput from '@/components/IvorianPhoneInput.vue'
 import VerificationLoader from '@/components/VerificationLoader.vue'
 import { verificationPageCopy } from '@/content/verificationCopy'
@@ -34,7 +35,15 @@ const error = ref('')
 const result = ref<SearchResult | null>(null)
 const history = ref<VerificationHistoryItem[]>([])
 const loadingHistory = ref(true)
+const vipQuota = ref<VipQuotaStatus | null>(null)
 const consultedAt = ref<Date | null>(null)
+
+const verificationQuota = computed(() => getVipQuotaItem(vipQuota.value, 'VERIFICATION'))
+const vipQuotaHint = computed(() => {
+  const remaining = verificationQuota.value?.remaining ?? 0
+  if (remaining <= 0) return ''
+  return verificationPageCopy.vipQuotaHint(remaining)
+})
 
 const formattedPhone = computed(() =>
   formatIvorianLocalDisplay(result.value?.phone ?? phone.value),
@@ -58,6 +67,14 @@ const toneSeverity = computed(() => {
   if (tone === 'info') return 'info'
   return 'secondary'
 })
+
+async function loadVipQuota() {
+  try {
+    vipQuota.value = await fetchVipQuotaStatus()
+  } catch {
+    vipQuota.value = null
+  }
+}
 
 async function loadHistory() {
   loadingHistory.value = true
@@ -86,7 +103,7 @@ async function runSearch(nextPhone?: string) {
     result.value = await searchByPhone(queryPhone)
     if (result.value.certified_status !== 'PAYMENT_REQUIRED') {
       consultedAt.value = new Date()
-      await loadHistory()
+      await Promise.all([loadHistory(), loadVipQuota()])
     }
     await router.replace({
       path: '/app/verification',
@@ -134,7 +151,7 @@ async function payAndSearch() {
 }
 
 onMounted(async () => {
-  await loadHistory()
+  await Promise.all([loadHistory(), loadVipQuota()])
   const queryPhone =
     typeof route.query.phone === 'string' ? toIvorianLocalDigits(route.query.phone) : ''
   if (queryPhone) {
@@ -156,6 +173,10 @@ onMounted(async () => {
       </div>
       <Tag :value="verificationPageCopy.priceTag" severity="info" />
     </header>
+
+    <Message v-if="vipQuotaHint" severity="success" :closable="false" class="mb-3">
+      {{ vipQuotaHint }}
+    </Message>
 
     <Card class="verification-page__form-card">
       <template #content>
@@ -206,9 +227,11 @@ onMounted(async () => {
         </h2>
         <p class="verification-page__payment-body">
           {{
-            verificationPageCopy.paymentBody
-              .replace('{phone}', formattedPhone)
-              .replace('{price}', String(result.price_fcfa))
+            result.vip_quota_remaining === 0 && auth.hasActiveSubscription
+              ? verificationPageCopy.vipQuotaExhausted
+              : verificationPageCopy.paymentBody
+                  .replace('{phone}', formattedPhone)
+                  .replace('{price}', String(result.price_fcfa))
           }}
         </p>
         <Button
@@ -223,6 +246,12 @@ onMounted(async () => {
 
     <Card v-else-if="result && resultCopy" class="verification-page__result">
       <template #content>
+        <Tag
+          v-if="result.included_in_vip"
+          :value="verificationPageCopy.vipIncludedTag"
+          severity="warn"
+          class="mb-2"
+        />
         <Tag :value="resultCopy.title" :severity="toneSeverity" />
         <h2 class="verification-page__result-title font-display">
           Résultat pour {{ formattedPhone }}

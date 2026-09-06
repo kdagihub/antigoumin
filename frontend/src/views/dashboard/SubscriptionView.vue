@@ -14,6 +14,7 @@ import {
 } from '@/api/alliances'
 import { redirectToGeniusPay } from '@/api/checkout'
 import { ApiError } from '@/api/client'
+import { fetchVipQuotaStatus, type VipQuotaStatus } from '@/api/subscriptions'
 import PremiumVisibilityControl from '@/components/PremiumVisibilityControl.vue'
 import { subscriptionPageCopy } from '@/content/alliancesCopy'
 import DashboardShell from '@/layouts/DashboardShell.vue'
@@ -26,6 +27,7 @@ const eligibleDeclarations = ref<EligibleDeclaration[]>([])
 const loading = ref(true)
 const paying = ref(false)
 const error = ref('')
+const vipQuota = ref<VipQuotaStatus | null>(null)
 
 const selectedDeclarationId = ref<number | null>(null)
 
@@ -95,16 +97,24 @@ const needsDeclaration = computed(
     eligibleDeclarations.value.length === 0,
 )
 
+const quotaLabels: Record<string, string> = {
+  VERIFICATION: subscriptionPageCopy.quotaVerification,
+  DECLARATION: subscriptionPageCopy.quotaDeclaration,
+  TRANSPARENCY_REQUEST: subscriptionPageCopy.quotaTransparency,
+}
+
 async function loadSubscriptionContext() {
   loading.value = true
   error.value = ''
   try {
-    const [allianceList, eligible] = await Promise.all([
+    const [allianceList, eligible, quotaStatus] = await Promise.all([
       fetchAlliances(),
       fetchEligibleDeclarations(),
+      fetchVipQuotaStatus().catch(() => null),
     ])
     alliances.value = allianceList
     eligibleDeclarations.value = eligible
+    vipQuota.value = quotaStatus
     if (!selectedDeclarationId.value && eligible.length === 1) {
       selectedDeclarationId.value = eligible[0]?.id ?? null
     }
@@ -269,6 +279,25 @@ onMounted(loadSubscriptionContext)
         {{ benefit }}
       </li>
     </ul>
+
+    <section v-if="vipQuota?.active" class="subscription-page__section">
+      <h2 class="subscription-quota__title font-display">{{ subscriptionPageCopy.quotaTitle }}</h2>
+      <div class="subscription-quota__grid">
+        <div
+          v-for="item in vipQuota.quotas"
+          :key="item.service_type"
+          class="subscription-quota__item"
+        >
+          <span class="subscription-quota__label">
+            {{ quotaLabels[item.service_type] ?? item.service_type }}
+          </span>
+          <strong class="subscription-quota__value">
+            {{ item.remaining }}/{{ item.limit }}
+          </strong>
+          <span class="subscription-quota__hint">restant ce mois</span>
+        </div>
+      </div>
+    </section>
 
     <section class="subscription-page__section">
       <PremiumVisibilityControl compact />
@@ -502,6 +531,49 @@ onMounted(loadSubscriptionContext)
 
 .subscription-page__section {
   margin-bottom: 1rem;
+}
+
+.subscription-quota__title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  color: var(--color-ink);
+}
+
+.subscription-quota__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.subscription-quota__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0.875rem;
+  border-radius: 0.875rem;
+  background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
+  border: 1px solid rgb(251 191 36 / 0.25);
+}
+
+.subscription-quota__label {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.subscription-quota__value {
+  font-size: 1.125rem;
+  color: #92400e;
+}
+
+.subscription-quota__hint {
+  font-size: 0.6875rem;
+  color: var(--color-muted);
+}
+
+@media (max-width: 640px) {
+  .subscription-quota__grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .mb-3 {

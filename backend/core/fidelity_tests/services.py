@@ -10,6 +10,7 @@ from core.models import TransparencyRequest, User
 from core.notifications.email import notify_phone_or_user_email, notify_user_by_email
 from core.notifications.sms import send_transparency_request_sms_async
 from core.pricing import ServiceType
+from core.subscriptions.quotas import can_use_vip_quota
 from core.utils.phone import normalize_phone
 from core.utils.subscription import get_unused_payment
 
@@ -61,7 +62,8 @@ def create_transparency_request(
         ServiceType.TRANSPARENCY_REQUEST,
         payment_id=payment_id,
     )
-    if payment is None and not settings.DEBUG:
+    use_vip_quota = payment is None and can_use_vip_quota(user, ServiceType.TRANSPARENCY_REQUEST)
+    if payment is None and not use_vip_quota and not settings.DEBUG:
         raise TransparencyRequestServiceError(
             402,
             "Paiement Demande de Transparence requis (550 FCFA).",

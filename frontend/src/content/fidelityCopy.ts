@@ -10,6 +10,9 @@ export const fidelityPageCopy = {
   payCta: 'PAYER LES FRAIS',
   formTitle: 'Nouveau test de fidélité',
   formHint: 'Paiement validé — saisissez le numéro à inviter.',
+  vipFormHint: 'Forfait Premium — 1 test inclus ce mois. Saisissez le numéro à inviter.',
+  vipQuotaExhausted:
+    'Votre test inclus ce mois est utilisé. Payez 550 FCFA pour en envoyer un autre.',
   targetPhoneLabel: 'Numéro à tester',
   targetPhoneHint: 'Numéros ivoiriens (+225) uniquement.',
   formNotice:

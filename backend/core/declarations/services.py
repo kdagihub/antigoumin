@@ -12,6 +12,7 @@ from core.models import Declaration, Payment, User
 from core.notifications.email import notify_phone_or_user_email, notify_user_by_email
 from core.notifications.sms import send_verification_sms_async
 from core.pricing import ServiceType
+from core.subscriptions.quotas import can_use_vip_quota
 from core.utils.phone import normalize_phone
 from core.utils.subscription import get_unused_payment
 
@@ -85,7 +86,8 @@ def create_declaration(
     payment_id: int | None = None,
 ) -> DeclarationSchema:
     payment = get_unused_payment(user, ServiceType.DECLARATION, payment_id=payment_id)
-    if payment is None and not settings.DEBUG:
+    use_vip_quota = payment is None and can_use_vip_quota(user, ServiceType.DECLARATION)
+    if payment is None and not use_vip_quota and not settings.DEBUG:
         raise DeclarationServiceError(
             402,
             "Paiement de déclaration requis (300 FCFA).",

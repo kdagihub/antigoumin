@@ -177,7 +177,14 @@ class Payment(models.Model):
 class PhoneVerificationAccess(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="verification_accesses")
     phone = models.CharField(max_length=15)
-    payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name="verification_accesses")
+    payment = models.ForeignKey(
+        Payment,
+        on_delete=models.CASCADE,
+        related_name="verification_accesses",
+        null=True,
+        blank=True,
+        help_text="Null lorsque la consultation est incluse dans le forfait Alliance VIP.",
+    )
     expires_at = models.DateTimeField()
     used_at = models.DateTimeField(
         null=True,

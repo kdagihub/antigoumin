@@ -11,6 +11,7 @@ from core.notifications.router import router as notifications_router
 from core.fidelity_tests.router import router as transparency_requests_router
 from core.payments.router import router as payments_router
 from core.search.router import router as search_router
+from core.subscriptions.router import router as subscriptions_router
 
 api = NinjaAPI(
     title="AntiGoumin API",
@@ -26,6 +27,7 @@ api.add_router("/declarations", declarations_router)
 api.add_router("/notifications", notifications_router)
 api.add_router("/search", search_router)
 api.add_router("/payments", payments_router)
+api.add_router("/subscriptions", subscriptions_router)
 api.add_router("/transparency-requests", transparency_requests_router)
 
 

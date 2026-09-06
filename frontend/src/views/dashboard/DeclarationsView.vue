@@ -19,6 +19,7 @@ import {
   type RelationType,
 } from '@/api/declarations'
 import { fetchCheckoutStatus, fetchUnusedPayment } from '@/api/payments'
+import { fetchVipQuotaStatus, getVipQuotaItem, type VipQuotaStatus } from '@/api/subscriptions'
 import DeclarationLoader from '@/components/DeclarationLoader.vue'
 import IvorianPhoneInput from '@/components/IvorianPhoneInput.vue'
 import {
@@ -39,6 +40,7 @@ const router = useRouter()
 const declarations = ref<Declaration[]>([])
 const loadingList = ref(true)
 const paymentId = ref<number | null>(null)
+const vipQuota = ref<VipQuotaStatus | null>(null)
 const paying = ref(false)
 const submitting = ref(false)
 const endingId = ref<number | null>(null)
@@ -65,8 +67,19 @@ const visibilityOptions = Object.entries(declarationVisibilityCopy) as [
   (typeof declarationVisibilityCopy)[DeclarationVisibility],
 ][]
 
-const canCreate = computed(() => Boolean(paymentId.value) || import.meta.env.DEV)
+const declarationQuota = computed(() => getVipQuotaItem(vipQuota.value, 'DECLARATION'))
+const canUseVipQuota = computed(() => (declarationQuota.value?.remaining ?? 0) > 0)
+const canCreate = computed(
+  () => Boolean(paymentId.value) || canUseVipQuota.value || import.meta.env.DEV,
+)
 const showForm = computed(() => canCreate.value && auth.isFullyVerified)
+const formHint = computed(() =>
+  paymentId.value
+    ? declarationsPageCopy.formHint
+    : canUseVipQuota.value
+      ? declarationsPageCopy.vipFormHint
+      : declarationsPageCopy.formHint,
+)
 
 async function exportDeclarationPdf(item: Declaration) {
   downloadingPdfId.value = item.id
@@ -86,6 +99,14 @@ async function loadDeclarations() {
     error.value = err instanceof ApiError ? err.message : 'Chargement impossible.'
   } finally {
     loadingList.value = false
+  }
+}
+
+async function loadVipQuota() {
+  try {
+    vipQuota.value = await fetchVipQuotaStatus()
+  } catch {
+    vipQuota.value = null
   }
 }
 
@@ -174,7 +195,7 @@ async function submitDeclaration() {
     if (partnerPhotoPreview.value) URL.revokeObjectURL(partnerPhotoPreview.value)
     partnerPhotoPreview.value = ''
     paymentId.value = null
-    await loadDeclarations()
+    await Promise.all([loadDeclarations(), loadVipQuota()])
   } catch (err) {
     error.value = err instanceof ApiError ? err.message : 'Envoi impossible.'
   } finally {
@@ -210,7 +231,7 @@ onMounted(async () => {
     partnerPhone.value = toIvorianLocalDigits(route.query.phone)
     await previewPartner()
   }
-  await Promise.all([loadDeclarations(), resolvePayment()])
+  await Promise.all([loadDeclarations(), resolvePayment(), loadVipQuota()])
 })
 </script>
 
@@ -247,7 +268,13 @@ onMounted(async () => {
             <span class="declarations-card__emoji" aria-hidden="true">💌</span>
             <div>
               <h2 class="declarations-card__title font-display">{{ declarationsPageCopy.payTitle }}</h2>
-              <p class="declarations-card__body">{{ declarationsPageCopy.payBody }}</p>
+              <p class="declarations-card__body">
+                {{
+                  auth.hasActiveSubscription
+                    ? declarationsPageCopy.vipQuotaExhausted
+                    : declarationsPageCopy.payBody
+                }}
+              </p>
             </div>
           </div>
           <Button
@@ -268,7 +295,7 @@ onMounted(async () => {
             <span class="declarations-card__emoji" aria-hidden="true">✨</span>
             <div>
               <h2 class="declarations-card__title font-display">{{ declarationsPageCopy.formTitle }}</h2>
-              <p v-if="paymentId" class="declarations-card__body">{{ declarationsPageCopy.formHint }}</p>
+              <p v-if="canCreate" class="declarations-card__body">{{ formHint }}</p>
             </div>
           </div>
 

@@ -11,6 +11,8 @@ export interface SearchResult {
   phone: string
   certified_status: CertifiedStatus
   price_fcfa: number
+  included_in_vip?: boolean
+  vip_quota_remaining?: number | null
 }
 
 export interface VerificationHistoryItem {
@@ -18,6 +20,7 @@ export interface VerificationHistoryItem {
   phone: string
   certified_status: Exclude<CertifiedStatus, 'PAYMENT_REQUIRED'>
   amount_fcfa: number
+  included_in_vip?: boolean
   consulted_at: string
 }
 

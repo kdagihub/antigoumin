@@ -13,6 +13,11 @@ export const verificationPageCopy = {
   paymentBody:
     'La vérification du statut du numéro {phone} nécessite des frais de traitement à seulement {price} FCFA.',
   paymentCta: 'PAYER LES FRAIS',
+  vipIncludedTag: 'Inclus Premium',
+  vipQuotaHint: (remaining: number) =>
+    `${remaining} vérification${remaining > 1 ? 's' : ''} incluse${remaining > 1 ? 's' : ''} ce mois (Premium).`,
+  vipQuotaExhausted:
+    'Quota Premium épuisé (5/5 ce mois). Payez 200 FCFA pour continuer ou attendez le renouvellement.',
   historyEmpty: 'Vous n’avez pas encore consulté de numéro.',
 } as const
 
