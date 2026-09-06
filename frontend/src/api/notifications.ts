@@ -10,8 +10,17 @@ export interface InAppNotification {
   created_at: string
 }
 
+export function fetchNotifications(unreadOnly = false): Promise<InAppNotification[]> {
+  const params = new URLSearchParams()
+  if (unreadOnly) {
+    params.set('unread_only', 'true')
+  }
+  const query = params.toString()
+  return apiRequest<InAppNotification[]>(`/notifications/${query ? `?${query}` : ''}`)
+}
+
 export function fetchUnreadNotifications(): Promise<InAppNotification[]> {
-  return apiRequest<InAppNotification[]>('/notifications/?unread_only=true')
+  return fetchNotifications(true)
 }
 
 export function markNotificationRead(

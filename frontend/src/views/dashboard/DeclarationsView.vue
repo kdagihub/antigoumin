@@ -38,6 +38,7 @@ const downloadingPdfId = ref<number | null>(null)
 const error = ref('')
 const success = ref('')
 const previewNotice = ref('')
+const allianceNotice = ref('')
 
 const partnerPhone = ref('')
 const partnerName = ref('')
@@ -127,11 +128,13 @@ async function resolvePayment() {
 
 async function previewPartner() {
   previewNotice.value = ''
+  allianceNotice.value = ''
   const phone = partnerPhone.value.trim()
   if (phone.length < 8) return
   try {
     const preview = await fetchPartnerPreview(phone)
     previewNotice.value = preview.consent_notice
+    allianceNotice.value = preview.partner_alliance_notice
   } catch (err) {
     error.value = err instanceof ApiError ? err.message : 'Aperçu indisponible.'
   }
@@ -275,6 +278,9 @@ onMounted(async () => {
               />
             </label>
             <p v-if="previewNotice" class="declarations-page__notice">{{ previewNotice }}</p>
+            <Message v-if="allianceNotice" severity="warn" :closable="false" class="mt-3">
+              {{ allianceNotice }}
+            </Message>
 
             <label class="declarations-page__field">
               <span>Prénom ou surnom du partenaire</span>

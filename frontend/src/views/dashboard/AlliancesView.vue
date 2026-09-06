@@ -19,6 +19,11 @@ import {
   type Alliance,
   type EligibleDeclaration,
 } from '@/api/alliances'
+import {
+  fetchNotifications,
+  markNotificationRead,
+  type InAppNotification,
+} from '@/api/notifications'
 import DashboardShell from '@/layouts/DashboardShell.vue'
 import { useAuthStore } from '@/stores/auth'
 import { downloadAlliancePdf } from '@/utils/moduleReceipts'
@@ -36,6 +41,22 @@ const downloadingPdfId = ref<number | null>(null)
 const error = ref('')
 const success = ref('')
 const selectedDeclarationId = ref<number | null>(null)
+const notifications = ref<InAppNotification[]>([])
+const loadingAlerts = ref(true)
+const dismissingAlertId = ref<number | null>(null)
+
+const allianceAlertTypes = new Set([
+  'PARTNER_DECLARED_BY_OTHER',
+  'PARTNER_VISIBILITY_DISABLED',
+])
+
+const allianceAlerts = computed(() =>
+  notifications.value.filter((notification) => allianceAlertTypes.has(notification.type)),
+)
+
+const unreadAllianceAlerts = computed(() =>
+  allianceAlerts.value.filter((notification) => !notification.read_at),
+)
 
 const userId = computed(() => auth.user?.id ?? 0)
 
@@ -102,6 +123,33 @@ async function exportAlliancePdf(item: Alliance) {
     await downloadAlliancePdf(item, partnerName(item))
   } finally {
     downloadingPdfId.value = null
+  }
+}
+
+async function loadAlerts() {
+  loadingAlerts.value = true
+  try {
+    notifications.value = await fetchNotifications()
+  } catch {
+    notifications.value = []
+  } finally {
+    loadingAlerts.value = false
+  }
+}
+
+async function dismissAlert(notificationId: number) {
+  dismissingAlertId.value = notificationId
+  try {
+    const result = await markNotificationRead(notificationId)
+    notifications.value = notifications.value.map((notification) =>
+      notification.id === notificationId
+        ? { ...notification, read_at: result.read_at }
+        : notification,
+    )
+  } catch (err) {
+    error.value = err instanceof ApiError ? err.message : 'Action impossible.'
+  } finally {
+    dismissingAlertId.value = null
   }
 }
 
@@ -196,7 +244,9 @@ async function terminateAlliance(alliance: Alliance) {
   }
 }
 
-onMounted(loadAlliancesData)
+onMounted(async () => {
+  await Promise.all([loadAlliancesData(), loadAlerts()])
+})
 </script>
 
 <template>
@@ -223,6 +273,50 @@ onMounted(loadAlliancesData)
     <Message v-if="success" severity="success" :closable="false" class="mb-3">
       {{ success }}
     </Message>
+
+    <section class="alliances-page__section">
+      <div class="alliances-page__alerts-head">
+        <h2 class="alliances-page__section-title font-display">Alertes Alliance VIP</h2>
+        <Tag
+          v-if="unreadAllianceAlerts.length"
+          :value="`${unreadAllianceAlerts.length} non lue(s)`"
+          severity="warn"
+        />
+      </div>
+      <p v-if="loadingAlerts">Chargement des alertes…</p>
+      <p v-else-if="!allianceAlerts.length" class="alliances-page__empty">
+        Aucune alerte pour le moment. Vous serez informé si votre partenaire est déclaré
+        par une autre personne sur la plateforme, sans révéler l'identité du déclarant.
+      </p>
+      <div v-else class="alliances-page__cards">
+        <Card v-for="item in allianceAlerts" :key="item.id">
+          <template #content>
+            <div class="alliances-page__alert-head">
+              <div>
+                <h3>{{ item.title }}</h3>
+                <Tag
+                  :value="item.read_at ? 'Lue' : 'Nouvelle'"
+                  :severity="item.read_at ? 'secondary' : 'warn'"
+                />
+              </div>
+            </div>
+            <p class="alliances-page__meta">{{ item.message }}</p>
+            <p class="alliances-page__meta">
+              {{ new Date(item.created_at).toLocaleString('fr-CI') }}
+            </p>
+            <Button
+              v-if="!item.read_at"
+              label="Marquer comme lue"
+              severity="secondary"
+              text
+              size="small"
+              :loading="dismissingAlertId === item.id"
+              @click="dismissAlert(item.id)"
+            />
+          </template>
+        </Card>
+      </div>
+    </section>
 
     <section v-if="pendingInvitations.length" class="alliances-page__section">
       <h2 class="alliances-page__section-title font-display">Invitations reçues</h2>
@@ -443,6 +537,25 @@ onMounted(loadAlliancesData)
   color: var(--color-muted);
   line-height: 1.55;
   max-width: 40rem;
+}
+
+.alliances-page__alerts-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.alliances-page__alerts-head .alliances-page__section-title {
+  margin-bottom: 0;
+}
+
+.alliances-page__alert-head h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--color-ink);
 }
 
 .alliances-page__section {

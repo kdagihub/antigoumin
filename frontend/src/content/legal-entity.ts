@@ -20,7 +20,6 @@ export const antiGouminService = {
   urlPrincipale: 'https://antigoumin.live',
   contactEmail: 'contact@antigoumin.live',
   privacyEmail: 'privacy@antigoumin.live',
-  telephone: '+225 07 97 96 93 94',
 } as const
 
 export function editorParagraphs(): string[] {
@@ -39,7 +38,6 @@ export function editorDetailsList(): string[] {
     `Siège social : ${legalEntity.siegeSocial}`,
     `Direction technique de ${antiGouminService.nom} : ${legalEntity.directionTechnique}`,
     `Contact ${antiGouminService.nom} : ${antiGouminService.contactEmail}`,
-    `Téléphone : ${antiGouminService.telephone}`,
     `Protection des données : ${antiGouminService.privacyEmail}`,
   ]
 }

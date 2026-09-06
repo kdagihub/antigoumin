@@ -24,6 +24,8 @@ export interface PartnerPreview {
   partner_phone: string
   price_fcfa: number
   consent_notice: string
+  partner_in_active_alliance: boolean
+  partner_alliance_notice: string
 }
 
 export interface DeclarationPreview {

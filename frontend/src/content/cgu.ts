@@ -237,7 +237,6 @@ export const cguDocument: LegalDocument = {
       list: [
         `Email : ${antiGouminService.contactEmail}`,
         `Protection des données : ${antiGouminService.privacyEmail}`,
-        `Téléphone : ${antiGouminService.telephone}`,
         `Éditeur : ${legalEntity.denominationLongue}`,
         `Siège social : ${legalEntity.siegeSocial}`,
         `RCCM : ${legalEntity.rccm} — NCC : ${legalEntity.numeroContribuable}`,

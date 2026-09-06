@@ -301,6 +301,10 @@ class InAppNotification(models.Model):
             "PARTNER_VISIBILITY_DISABLED",
             "Visibilité du partenaire désactivée",
         )
+        PARTNER_DECLARED_BY_OTHER = (
+            "PARTNER_DECLARED_BY_OTHER",
+            "Partenaire déclaré par un tiers",
+        )
 
     recipient = models.ForeignKey(
         User,

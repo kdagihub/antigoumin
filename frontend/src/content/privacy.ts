@@ -16,7 +16,7 @@ export const privacyDocument: LegalDocument = {
       paragraphs: [
         `Le responsable du traitement des données personnelles collectées via ${antiGouminService.nom} est ${legalEntity.denominationLongue} (${legalEntity.denomination}), ${legalEntity.formeJuridique}, immatriculée au RCCM sous le numéro ${legalEntity.rccm}.`,
         `Siège social : ${legalEntity.siegeSocial}.`,
-        `Pour toute question relative à vos données personnelles : ${antiGouminService.privacyEmail} — Tél. ${antiGouminService.telephone}.`,
+        `Pour toute question relative à vos données personnelles : ${antiGouminService.privacyEmail}.`,
         `Conformément à la Loi n° 2013-450, ${legalEntity.denomination} s’engage à accomplir les formalités requises auprès de l’Autorité de protection des données personnelles et, le cas échéant, à désigner un Correspondant à la protection des données personnelles (DPO).`,
       ],
       list: editorDetailsList(),

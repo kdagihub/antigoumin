@@ -23,6 +23,8 @@ class PartnerPreviewSchema(Schema):
     partner_phone: str
     price_fcfa: int
     consent_notice: str
+    partner_in_active_alliance: bool = False
+    partner_alliance_notice: str = ""
 
 
 class VerifyPreviewSchema(Schema):

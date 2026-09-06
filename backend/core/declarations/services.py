@@ -3,6 +3,11 @@ from django.db import models, transaction
 from django.utils import timezone
 from ninja.errors import HttpError
 
+from core.alliances.alerts import (
+    declarant_partner_engagement_notice,
+    notify_alliance_partners_of_new_declaration,
+    partner_has_active_vip_alliance,
+)
 from core.models import Declaration, Payment, User
 from core.notifications.email import notify_phone_or_user_email, notify_user_by_email
 from core.notifications.sms import send_verification_sms_async
@@ -58,6 +63,8 @@ def preview_partner(phone: str) -> PartnerPreviewSchema:
             "La personne invitée choisira librement d'accepter ou de refuser. "
             "Aucune autre relation ni information privée ne vous sera révélée."
         ),
+        partner_in_active_alliance=partner_has_active_vip_alliance(normalized_phone),
+        partner_alliance_notice=declarant_partner_engagement_notice(normalized_phone),
     )
 
 
@@ -121,6 +128,12 @@ def create_declaration(
             payment.metadata = {**payment.metadata, "declaration_id": declaration.id}
             payment.save(update_fields=["consumed", "metadata"])
         token = store_verification_token(declaration.id)
+
+    notify_alliance_partners_of_new_declaration(
+        declared_partner_phone=normalized_phone,
+        declaration_id=declaration.id,
+        exclude_user_id=user.id,
+    )
 
     send_verification_sms_async(normalized_phone, token)
     verify_url = f"{settings.FRONTEND_BASE_URL.rstrip('/')}/v/{token}"
